@@ -49,13 +49,13 @@
   (wordByWordSQL input) (newline)
   (transSQL (read (open-input-string (string-append "(" (read-line) ")")))))
 
-;(transSQL (read (open-input-string (string-append "(" (read-line) ")"))))
+(transSQL (read (open-input-string (string-append "(" (read-line) ")"))))
 
 
 
 ;|========================================|Grammarbased|=============================================|
 
-;|-------------------------------------<|Helper-Functions|>------------------------------------------|
+;|----------------------------------------<|Help-Funcs|>---------------------------------------------|
 
 (define (slist->string slst) ;Convert one list into a whole string
   (string-join (map symbol->string slst) " "))
@@ -68,31 +68,21 @@
      (query-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string ele_eng) "'"))]
     [else (symbol->string ele_eng)]))
 
-(define (getPerson ele)
-  ;Logik: Check ob Personalpronomen oder Nomen -> Person herausfinden
+(define (getPerson ele) ;check nach person
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
-     (cond
-       [(or (eq? ele 'I) (eq? ele 'i))('ich)]
-       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we))('wirSieDu)]                                                                ;Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
-       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it) (eq? ele 'You) (eq? ele 'you))('erSieEsIhr)])]
-    [else 'erSieEsIhr]))                                                                                                ;TODO: Überprüfen ob das funtionieren kann
+    [(query-maybe-value mdbc (string-append "SELECT gender FROM nouns WHERE ele=" "'" ele "'"))(displayln("GESCHLECHT VON NOMEN HERAUSFINDEN"))])
+  (displayln ("Noch nicht")))
 
-(getPerson 'Ich)
-
-(define (getVerbHelper person verb)
+(define (getVerb person verb)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
      (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))]
     [else ;Das funktioniert nur bedingt
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
+       [(eq? person 'du)(string-append (regVerbQuery verb) "st")]
        [(eq? person 'erSieEsIhr)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSieDu)(string-append (regVerbQuery verb) "en")])]))
-
-
-(define (getVerb subj verb)
-  (getVerbHelper (getPerson subj) verb))
+       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")])]))
 
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
@@ -113,7 +103,7 @@
     [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
      (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
     
-    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'")) ;DAS BRINGT SO NOCH NICHTS
+    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'")) ;DAS GEHT SO NOCH NICHT
      (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'"))]
     [else (displayln "I dont know")]))
 
