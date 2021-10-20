@@ -3,6 +3,9 @@
 
 ;TODO: Funktion um regelmäßige Verben in Datenbank zu schreiben Link regelmäßige deutsche verben: https://de.wiktionary.org/wiki/Verzeichnis:Deutsch/Regelm%C3%A4%C3%9Fige_Verben
 ;TODO: .!? am Ende von Sätzen
+;TODO: How to store the results
+
+;TODO: Use list-ref instead of first second etc. sentences can be translated more frealy. For a verb you would just look "infront" or "behind", instead of having fixed positions
 
 ;For MySQL or MariaDB Database on your local machine
 
@@ -11,7 +14,7 @@
                  #:port 3306
                  #:database "vocabdb"
                  #:user "user1"
-                 #:password "password"))
+                 #:password "password")) ;<====Change this before publishing
 
 
 (define (populateVerbTable lst)
@@ -78,8 +81,6 @@
        [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it) (eq? ele 'You) (eq? ele 'you))('erSieEsIhr)])]
     [else 'erSieEsIhr]))                                                                                                ;TODO: Überprüfen ob das funtionieren kann
 
-(getPerson 'Ich)
-
 (define (getVerbHelper person verb)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
@@ -109,6 +110,7 @@
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
 
 (define (transSenWithArticle lst)
+  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst)) "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
   (cond
     [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
      (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
