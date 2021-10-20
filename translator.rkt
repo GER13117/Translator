@@ -11,7 +11,7 @@
                  #:port 3306
                  #:database "vocabdb"
                  #:user "user1"
-                 #:password "ichBinEinWahnsinningGeilesPasswort"))
+                 #:password "password"))
 
 
 (define (populateVerbTable lst)
