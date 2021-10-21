@@ -108,7 +108,7 @@
 (define (transSenWithArticle lst)
   (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
                                             "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
+                                                                                                (symbol->string (second lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
   (cond
     [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
      (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
@@ -138,7 +138,8 @@
 
 
 ;|===========================================|Tests|=================================================|
-(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
+;(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
+(displayln(grammarTranslate '(The art is beautiful)))
 
 
 (define (verbTest verb)
