@@ -9,12 +9,7 @@
 
 ;For MySQL or MariaDB Database on your local machine
 
-(define mdbc ;function ro connect to mariaDB Database on raspberryPi
-  (mysql-connect #:server "translator.ddns.net" ;dyndns to fix the problem of a changing ip-address
-                 #:port 3306
-                 #:database "vocabdb"
-                 #:user "user1"
-                 #:password "password")) ;<====Change this before publishing
+(require "login.rkt")
 
 
 (define (populateVerbTable lst)
