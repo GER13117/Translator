@@ -72,19 +72,19 @@
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
      (cond
-       [(or (eq? ele 'I) (eq? ele 'i))('ich)]
-       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we))('wirSieDu)]                                      ;Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
-       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it) (eq? ele 'You) (eq? ele 'you))('erSieEsIhr)])]
-    [else 'erSieEsIhr]))                                                                                                ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
-
+       [(or (eq? ele 'I) (eq? ele 'i))'ich]
+       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they))'wirSieDu];Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
+       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs])]
+    [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
+                                                                               ;TODO: Ihr (you) fixen
 (define (getVerbHelper person verb)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
      (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string verb) "'")) ;Das funktioniert nur wenn ALLE Unregelmäßigen Verben in der Liste sind
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
-       [(eq? person 'erSieEsIhr)(string-append (regVerbQuery verb) "t")]
+       [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
        [(eq? person 'wirSieDu)(string-append (regVerbQuery verb) "en")])]
     [else (symbol->string verb)])) ;TODO: Ändern, sodass das Verb mit übersetzung der Datenbank hinzugefügt wird
 
@@ -106,7 +106,9 @@
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
 
 (define (transSenWithArticle lst)
-  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst)) "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
+  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
+                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
+                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
   (cond
     [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
      (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
@@ -132,7 +134,18 @@
   
   ;check for pronomen
 
+
+
+
+;|===========================================|Tests|=================================================|
 (displayln(grammarTranslate '(The beautiful fish swims through the sea)))
+
+
+(define (verbTest verb)
+  (define pronouns (list 'I 'you 'he 'she 'it 'we 'you 'they))
+  (for-each (lambda (ele)
+              (displayln (getVerb ele verb))) pronouns))
+(verbTest 'walk)
 
 
 
