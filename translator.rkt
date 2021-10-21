@@ -12,6 +12,7 @@
 (require "login.rkt")
 
 
+;===========================================|Unused|================================================|
 (define (populateVerbTable lst)
   (cond
     [(> (length lst) 0)((query-exec mdbc (string-append "INSERT INTO verbs(eng_verb, ich, du, ersiees, wir, ihr, sie) " "VALUES " "('" ;Die Funkton funktioniert so nicht mehr
@@ -72,24 +73,24 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
      (cond
        [(or (eq? ele 'I) (eq? ele 'i))('ich)]
-       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we))('wirSieDu)]                                                                ;Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
+       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we))('wirSieDu)]                                      ;Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
        [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it) (eq? ele 'You) (eq? ele 'you))('erSieEsIhr)])]
-    [else 'erSieEsIhr]))                                                                                                ;TODO: Überprüfen ob das funtionieren kann
+    [else 'erSieEsIhr]))                                                                                                ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
 
 (define (getVerbHelper person verb)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
      (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))]
-    [else ;Das funktioniert nur bedingt
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string verb) "'")) ;Das funktioniert nur wenn ALLE Unregelmäßigen Verben in der Liste sind
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
        [(eq? person 'erSieEsIhr)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSieDu)(string-append (regVerbQuery verb) "en")])]))
+       [(eq? person 'wirSieDu)(string-append (regVerbQuery verb) "en")])]
+    [else (symbol->string verb)])) ;TODO: Ändern, sodass das Verb mit übersetzung der Datenbank hinzugefügt wird
 
 
 (define (getVerb subj verb)
   (getVerbHelper (getPerson subj) verb))
-
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
 
