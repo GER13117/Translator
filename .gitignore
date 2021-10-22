@@ -1,6 +1,7 @@
 *.bak
 *.rkt~
 *.rkt#2#
+*.1
 /.idea
 /compiled
 

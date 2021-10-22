@@ -95,9 +95,11 @@
   (getVerbHelper (getPerson subj) verb))
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
+;(define (getCase subj))
 
 
-
+(define (getAdjective foo bar)
+  (displayln("AAAAAAAAAAAAA")))
 ;|-----------------------------------------<|Unsorted|>----------------------------------------------|
 (define (checkForQuestion ele)
   (cond
@@ -106,6 +108,20 @@
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
+(define (sentenceLoop lst (pos 0))
+  (cond
+    [(< pos (length lst))
+     (cond
+       [(isArticle)("SOMETHING")]
+       [(isNoun)("SOMETHING")]
+       [(isPronoun)("SOMETHING")]
+       [(isVerb)(getVerb (list-ref lst (- pos 1)) (list-ref lst pos))]
+       [(isAdjective)("SOMETHING")]
+       [else (list-ref lst pos)])]
+    [else " "]))
+
+
+
 
 (define (transSenWithArticle lst)
   (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
