@@ -73,8 +73,9 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
      (cond
        [(or (eq? ele 'I) (eq? ele 'i))'ich]
-       [(or (eq? ele 'You) (eq? ele 'you) (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they))'wirSieDu];Das geht so nicht: Ihr geht langsam vs Du gehst langsam vs Sie (Höflichkeitsform) gehen langsam
-       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs])]
+       [(or (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they))'wirSie]
+       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs]
+       [(or (eq? ele 'You) (eq? ele 'you))'du])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
                                                                                ;TODO: Ihr (you) fixen
 (define (getVerbHelper person verb)
@@ -85,7 +86,8 @@
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
        [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSieDu)(string-append (regVerbQuery verb) "en")])]
+       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
+       [(eq? person 'du)(string-append (regVerbQuery verb) "st")])]
     [else (symbol->string verb)])) ;TODO: Ändern, sodass das Verb mit übersetzung der Datenbank hinzugefügt wird
 
 
@@ -108,7 +110,7 @@
 (define (transSenWithArticle lst)
   (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
                                             "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                (symbol->string (second lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
+                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
   (cond
     [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
      (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
@@ -138,15 +140,15 @@
 
 
 ;|===========================================|Tests|=================================================|
-;(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
-(displayln(grammarTranslate '(The art is beautiful)))
+(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
+;(displayln(grammarTranslate '(The art is beautiful)))
 
 
 (define (verbTest verb)
-  (define pronouns (list 'I 'you 'he 'she 'it 'we 'you 'they))
+  (define pronouns '(I you he she it we you they))
   (for-each (lambda (ele)
               (displayln (getVerb ele verb))) pronouns))
-(verbTest 'walk)
+(verbTest 'jump)
 
 
 
