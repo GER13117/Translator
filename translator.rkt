@@ -90,7 +90,8 @@
 ;|------------------------------------------<|Verbs|>------------------------------------------------|
 
 (define (isVerb ele) ;TODO: Make functional: he she it s / es muss mit, (-ing)
-  #t)
+  (cond
+    [(or(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string ele) "'")) (query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string ele) "'")))]))
 
 (define (regVerbQuery ele_eng)
   (cond
@@ -109,16 +110,11 @@
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
                                                                                ;TODO: Du (you) fixen
 (define (getVerbHelper person verb)
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
-     (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
        [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
        [(eq? person 'wirSieSie)(string-append (regVerbQuery verb) "en")]
-       [(eq? person 'du)(string-append (regVerbQuery verb) "st")])]
-    [else (symbol->string verb)])) ;TODO: Ändern, sodass das Verb mit übersetzung der Datenbank hinzugefügt wird
+       [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
 (define (getVerb subj verb) ;TODO: Make dynamically if Adjective infront or noun in front
@@ -152,7 +148,7 @@
          [(isPronoun (list-ref lst pos))(display (getPronoun (list-ref lst pos)))]
          [(isVerb (list-ref lst pos))(display (getVerb (list-ref lst (- pos 1)) (list-ref lst pos)))] ;TODO: Make dynamically if Adjective infront or noun in front
          [(isAdjective (list-ref lst pos))"Adjective"]
-         [else (list-ref lst pos)])
+         [else (display (list-ref lst pos))])
        (display " ")
        (sentenceLoop lst (+ pos 1))
        ]
