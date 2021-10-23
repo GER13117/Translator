@@ -5,10 +5,6 @@
 ;TODO: .!? am Ende von Sätzen
 ;TODO: How to store the results
 
-;TODO: Use list-ref instead of first second etc. sentences can be translated more frealy. For a verb you would just look "infront" or "behind", instead of having fixed positions
-
-;For MySQL or MariaDB Database on your local machine
-
 (require "login.rkt")
 
 
@@ -59,7 +55,42 @@
 (define (slist->string slst) ;Convert one list into a whole string
   (string-join (map symbol->string slst) " "))
 
+;|-----------------------------------------<|Articles|>----------------------------------------------|
+
+(define (isArticle ele)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string ele) "'" "AND gender='male'"))#t]
+    [else #f]))
+
+(define (getArticle article noun)
+  (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string article)
+                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
+                                                                                                (symbol->string noun) "'")) "'")))
+
+;|------------------------------------------<|Nouns|>------------------------------------------------|
+
+(define (isNoun ele)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string ele) "'"))#t]
+    [else #f]))
+(define (getNoun noun)
+  (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string noun) "'")))
+  
+
+;|-----------------------------------------<|Pronouns|>----------------------------------------------|
+
+(define (isPronoun ele)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))#t]
+    [else #f]))
+
+(define (getPronoun pronoun)
+  (query-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string pronoun) "'")))
+
 ;|------------------------------------------<|Verbs|>------------------------------------------------|
+
+(define (isVerb ele) ;TODO: Make functional: he she it s / es muss mit, (-ing)
+  #t)
 
 (define (regVerbQuery ele_eng)
   (cond
@@ -73,11 +104,10 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
      (cond
        [(or (eq? ele 'I) (eq? ele 'i))'ich]
-       [(or (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they))'wirSie]
-       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs]
-       [(or (eq? ele 'You) (eq? ele 'you))'du])]
+       [(or (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they) (eq? ele 'You) (eq? ele 'you))'wirSieSie]
+       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
-                                                                               ;TODO: Ihr (you) fixen
+                                                                               ;TODO: Du (you) fixen
 (define (getVerbHelper person verb)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string verb) "'"))
@@ -86,15 +116,20 @@
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
        [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
+       [(eq? person 'wirSieSie)(string-append (regVerbQuery verb) "en")]
        [(eq? person 'du)(string-append (regVerbQuery verb) "st")])]
     [else (symbol->string verb)])) ;TODO: Ändern, sodass das Verb mit übersetzung der Datenbank hinzugefügt wird
 
 
-(define (getVerb subj verb)
+(define (getVerb subj verb) ;TODO: Make dynamically if Adjective infront or noun in front
   (getVerbHelper (getPerson subj) verb))
 
+
+
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
+
+(define (isAdjective)
+  #t)
 ;(define (getCase subj))
 
 
@@ -111,14 +146,19 @@
 (define (sentenceLoop lst (pos 0))
   (cond
     [(< pos (length lst))
-     (cond
-       [(isArticle)("SOMETHING")]
-       [(isNoun)("SOMETHING")]
-       [(isPronoun)("SOMETHING")]
-       [(isVerb)(getVerb (list-ref lst (- pos 1)) (list-ref lst pos))]
-       [(isAdjective)("SOMETHING")]
-       [else (list-ref lst pos)])]
-    [else " "]))
+       (cond
+         [(isArticle (list-ref lst pos))(display(getArticle (list-ref lst pos) (list-ref lst (+ pos 1))))]
+         [(isNoun (list-ref lst pos))(display (getNoun (list-ref lst pos)))]
+         [(isPronoun (list-ref lst pos))(display (getPronoun (list-ref lst pos)))]
+         [(isVerb (list-ref lst pos))(display (getVerb (list-ref lst (- pos 1)) (list-ref lst pos)))] ;TODO: Make dynamically if Adjective infront or noun in front
+         [(isAdjective (list-ref lst pos))"Adjective"]
+         [else (list-ref lst pos)])
+       (display " ")
+       (sentenceLoop lst (+ pos 1))
+       ]
+    [else (display ".")]))
+
+(sentenceLoop '(The program do shit))
 
 
 
@@ -156,7 +196,7 @@
 
 
 ;|===========================================|Tests|=================================================|
-(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
+;(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
 ;(displayln(grammarTranslate '(The art is beautiful)))
 
 
@@ -164,7 +204,7 @@
   (define pronouns '(I you he she it we you they))
   (for-each (lambda (ele)
               (displayln (getVerb ele verb))) pronouns))
-(verbTest 'jump)
+;(verbTest 'jump)
 
 
 
