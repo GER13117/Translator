@@ -25,6 +25,30 @@
 ;(populateVerbTable '("believe" "glaub" "hope" "hoff"))
 
 
+(define (transSenWithArticle lst)
+  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
+                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
+                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
+     (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
+    
+    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'")) ;DAS BRINGT SO NOCH NICHTS
+     (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'"))]
+    [else (displayln "I dont know")]))
+
+
+
+(define (grammarTranslate lst)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'")) ;check for redewendung / already translated phrase
+     (query-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'"))]
+    [(or (eq? (first lst) 'The) (eq? (first lst) 'A) (eq? (first lst) 'An))(transSenWithArticle lst)] ;check if a sentence starts with an article
+    
+    [(display "Are you have been stupid")])
+  )
+
+
 
 ;==========================================|WordToWord|==============================================|
 (define (checkForCorrectReturn ele)
@@ -53,60 +77,61 @@
 ;|-------------------------------------<|Helper-Functions|>------------------------------------------|
 
 (define (slist->string slst) ;Convert one list into a whole string
-  (string-join (map symbol->string slst) " "))
+  (string-join (map slst) " "))
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
 
 (define (isArticle ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string ele) "'" "AND gender='male'"))#t]
+    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
 (define (getArticle article noun)
-  (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string article)
+  (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" article
                                             "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                (symbol->string noun) "'")) "'")))
+                                                                                                 noun "'")) "'")))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 
 (define (isNoun ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string ele) "'"))#t]
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" ele "'"))#t]
     [else #f]))
 (define (getNoun noun)
-  (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string noun) "'")))
+  (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" noun "'")))
   
 
 ;|-----------------------------------------<|Pronouns|>----------------------------------------------|
 
 (define (isPronoun ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))#t]
+    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))#t]
     [else #f]))
 
 (define (getPronoun pronoun)
-  (query-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string pronoun) "'")))
+  (query-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" pronoun "'")))
 
 ;|------------------------------------------<|Verbs|>------------------------------------------------|
 
-(define (isVerb ele) ;TODO: Make functional: he she it s / es muss mit, (-ing)
+(define (isVerb ele) ;TODO: Make functional: (-ing) ;TODO: REIHENFOLGE OPTMIEREN
   (cond
-    [(or(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" (symbol->string ele) "'")) (query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string ele) "'")))]))
+    [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'"  ele "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "es" #:left? #f) "'"))]
+    [else #f]))
 
 (define (regVerbQuery ele_eng)
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string ele_eng) "'"))
-     (query-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (symbol->string ele_eng) "'"))]
-    [else (symbol->string ele_eng)]))
+  (query-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele_eng "'")))
 
 (define (getPerson ele)
   ;Logik: Check ob Personalpronomen oder Nomen -> Person herausfinden
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" (symbol->string ele) "'"))
+    [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))
      (cond
-       [(or (eq? ele 'I) (eq? ele 'i))'ich]
-       [(or (eq? ele 'We) (eq? ele 'we) (eq? ele 'They) (eq? ele 'they) (eq? ele 'You) (eq? ele 'you))'wirSieSie]
-       [(or (eq? ele 'He) (eq? ele 'he) (eq? ele 'She) (eq? ele 'she) (eq? ele 'It) (eq? ele 'it))'erSieEs])]
+       [(or (eq? (string-downcase ele) "i"))'ich]
+       [(or (eq? (string-downcase ele) "we") (eq? (string-downcase ele) "they") (eq? (string-downcase ele) "you"))'wirSieSie]
+       [(or (eq? (string-downcase ele) "he") (eq? (string-downcase ele) "she") (eq? (string-downcase ele) "it"))'erSieEs])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
                                                                                ;TODO: Du (you) fixen
 (define (getVerbHelper person verb)
@@ -124,8 +149,8 @@
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
 
-(define (isAdjective)
-  #t)
+(define (isAdjective adj)
+  #f)
 ;(define (getCase subj))
 
 
@@ -134,8 +159,8 @@
 ;|-----------------------------------------<|Unsorted|>----------------------------------------------|
 (define (checkForQuestion ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT eng_verb FROM verbs WHERE eng_verb=" "'" (symbol->string ele) "'")) #t]
-    [(query-maybe-value mdbc (string-append "SELECT eng_question_word FROM verbs WHERE eng_verb=" "'" (symbol->string ele) "'")) #t]
+    [(query-maybe-value mdbc (string-append "SELECT eng_verb FROM verbs WHERE eng_verb=" "'" ele "'")) #t]
+    [(query-maybe-value mdbc (string-append "SELECT eng_question_word FROM verbs WHERE eng_verb=" "'" ele "'")) #t]
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
@@ -146,7 +171,7 @@
          [(isArticle (list-ref lst pos))(display(getArticle (list-ref lst pos) (list-ref lst (+ pos 1))))]
          [(isNoun (list-ref lst pos))(display (getNoun (list-ref lst pos)))]
          [(isPronoun (list-ref lst pos))(display (getPronoun (list-ref lst pos)))]
-         [(isVerb (list-ref lst pos))(display (getVerb (list-ref lst (- pos 1)) (list-ref lst pos)))] ;TODO: Make dynamically if Adjective infront or noun in front
+         [(isVerb (list-ref lst pos))(display (getVerb (list-ref lst (- pos 1)) (string-trim (list-ref lst pos)"es" #:left? #f)))] ;TODO: Make dynamically if Adjective infront or noun in front
          [(isAdjective (list-ref lst pos))"Adjective"]
          [else (display (list-ref lst pos))])
        (display " ")
@@ -154,33 +179,12 @@
        ]
     [else (display ".")]))
 
-(sentenceLoop '(The program do shit))
+(sentenceLoop '("the" "fish" "does" "shit"))
 
 
 
 
-(define (transSenWithArticle lst)
-  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
-                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
-     (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
-    
-    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'")) ;DAS BRINGT SO NOCH NICHTS
-     (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'"))]
-    [else (displayln "I dont know")]))
 
-
-
-(define (grammarTranslate lst)
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'")) ;check for redewendung / already translated phrase
-     (query-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'"))]
-    [(or (eq? (first lst) 'The) (eq? (first lst) 'A) (eq? (first lst) 'An))(transSenWithArticle lst)] ;check if a sentence starts with an article
-    
-    [(display "Are you have been stupid")])
-  )
   ;check for redewendung => give the translation back
   ;check for article => check for / get noun  => get gender of noun / currect form of article => check for verb => get the correct translation of the verb => check for präpostion => check for / get nomen        => get currect version of the präposition
   ;                                                                                                                                                                                => check for / get pronomen
