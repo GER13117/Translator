@@ -25,31 +25,6 @@
 ;(populateVerbTable '("believe" "glaub" "hope" "hoff"))
 
 
-(define (transSenWithArticle lst)
-  (display (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" (symbol->string (first lst))
-                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                (symbol->string (third lst)) "'")) "'"))) ;Das ist so nicht wirklich anwendbar
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))
-     (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" (symbol->string (second lst)) "'"))]
-    
-    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'")) ;DAS BRINGT SO NOCH NICHTS
-     (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" (symbol->string (second lst)) "'"))]
-    [else (displayln "I dont know")]))
-
-
-
-(define (grammarTranslate lst)
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'")) ;check for redewendung / already translated phrase
-     (query-value mdbc (string-append "SELECT ger_text FROM phrases WHERE eng_text=" "'" (slist->string lst) "'"))]
-    [(or (eq? (first lst) 'The) (eq? (first lst) 'A) (eq? (first lst) 'An))(transSenWithArticle lst)] ;check if a sentence starts with an article
-    
-    [(display "Are you have been stupid")])
-  )
-
-
-
 ;==========================================|WordToWord|==============================================|
 (define (checkForCorrectReturn ele)
   (query-maybe-value mdbc (string-append "SELECT german FROM wordtoword WHERE english=" "'" (symbol->string ele) "'")))
@@ -199,9 +174,6 @@
 
 
 ;|===========================================|Tests|=================================================|
-;(displayln(grammarTranslate '(The beautiful fish swims through the sea)))
-;(displayln(grammarTranslate '(The art is beautiful)))
-
 
 (define (verbTest verb)
   (define pronouns '(I you he she it we you they))
