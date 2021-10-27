@@ -159,20 +159,6 @@
 
 (sentenceLoop '("He" "walks" "the" "way"))
 
-
-
-
-
-  ;check for redewendung => give the translation back
-  ;check for article => check for / get noun  => get gender of noun / currect form of article => check for verb => get the correct translation of the verb => check for präpostion => check for / get nomen        => get currect version of the präposition
-  ;                                                                                                                                                                                => check for / get pronomen
-  ;                  => check for adjective ||
-  
-  ;check for pronomen
-
-
-
-
 ;|===========================================|Tests|=================================================|
 
 (define (verbTest verb)
