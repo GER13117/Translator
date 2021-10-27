@@ -81,7 +81,7 @@
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
 
-(define (isArticle ele)
+(define (isArticle ele) ;TODO: He walks the way --> Er geht den Weg (NICHT Er geht der Weg)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
@@ -115,10 +115,10 @@
 
 (define (isVerb ele) ;TODO: Make functional: (-ing) ;TODO: REIHENFOLGE OPTMIEREN
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'"  ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "s" #:left? #f) "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "es" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'"  ele "'"))"iVerb"]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele "'"))"rVerb"]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "s" #:left? #f) "'"))"rVerbS"]
+    [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "es" #:left? #f) "'"))"rVerbES"]
     [else #f]))
 
 (define (regVerbQuery ele_eng)
@@ -129,9 +129,9 @@
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))
      (cond
-       [(or (eq? (string-downcase ele) "i"))'ich]
-       [(or (eq? (string-downcase ele) "we") (eq? (string-downcase ele) "they") (eq? (string-downcase ele) "you"))'wirSieSie]
-       [(or (eq? (string-downcase ele) "he") (eq? (string-downcase ele) "she") (eq? (string-downcase ele) "it"))'erSieEs])]
+       [(string-ci=? ele "I")'ich]
+       [(or (string-ci=? ele "We") (string-ci=? ele "They") (string-ci=? ele "You"))'wirSieSie]
+       [(or (string-ci=? ele "He") (string-ci=? ele "She") (string-ci=? ele "It"))'erSieEs])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
                                                                                ;TODO: Du (you) fixen
 (define (getVerbHelper person verb)
@@ -142,8 +142,11 @@
        [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
-(define (getVerb subj verb) ;TODO: Make dynamically if Adjective infront or noun in front
-  (getVerbHelper (getPerson subj) verb))
+(define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front
+  (cond
+    [(eq? form "rVerbES")(getVerbHelper (getPerson subj) (string-trim verb "es" #:left? #f))]
+    [(eq? form "rVerbS")(getVerbHelper (getPerson subj) (string-trim verb "s" #:left? #f))]
+    [else (getVerbHelper (getPerson subj) verb)]))
 
 
 
@@ -171,7 +174,7 @@
          [(isArticle (list-ref lst pos))(display(getArticle (list-ref lst pos) (list-ref lst (+ pos 1))))]
          [(isNoun (list-ref lst pos))(display (getNoun (list-ref lst pos)))]
          [(isPronoun (list-ref lst pos))(display (getPronoun (list-ref lst pos)))]
-         [(isVerb (list-ref lst pos))(display (getVerb (list-ref lst (- pos 1)) (string-trim (list-ref lst pos)"es" #:left? #f)))] ;TODO: Make dynamically if Adjective infront or noun in front
+         [(string? (isVerb (list-ref lst pos)))(display (getVerb (list-ref lst (- pos 1)) (list-ref lst pos) (isVerb (list-ref lst pos))))] ;TODO: Make dynamically if Adjective infront or noun in front
          [(isAdjective (list-ref lst pos))"Adjective"]
          [else (display (list-ref lst pos))])
        (display " ")
@@ -179,7 +182,7 @@
        ]
     [else (display ".")]))
 
-(sentenceLoop '("the" "fish" "does" "shit"))
+(sentenceLoop '("He" "walks" "the" "way"))
 
 
 
