@@ -8,21 +8,8 @@
 (require "login.rkt")
 
 
-;===========================================|Unused|================================================|
-(define (populateVerbTable lst)
-  (cond
-    [(> (length lst) 0)((query-exec mdbc (string-append "INSERT INTO verbs(eng_verb, ich, du, ersiees, wir, ihr, sie) " "VALUES " "('" ;Die Funkton funktioniert so nicht mehr
-                                                        (first lst) "','"
-                                                        (string-append (second lst) "e") "','"
-                                                        (string-append (second lst) "st") "','"
-                                                        (string-append (second lst) "t") "','"
-                                                        (string-append (second lst) "en") "','"
-                                                        (string-append (second lst) "t") "','"
-                                                        (string-append (second lst) "en") "')"))
-                        (populateVerbTable (cddr lst)))]
-    [else " "]))
+;============================================|Unused|================================================|
 
-;(populateVerbTable '("believe" "glaub" "hope" "hoff"))
 
 
 ;==========================================|WordToWord|==============================================|
@@ -62,9 +49,7 @@
     [else #f]))
 
 (define (getArticle article noun)
-  (query-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" article
-                                            "'" "AND gender='" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='"
-                                                                                                 noun "'")) "'")))
+  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'")))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 
@@ -96,8 +81,11 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" (string-trim ele "es" #:left? #f) "'"))"rVerbES"]
     [else #f]))
 
-(define (regVerbQuery ele_eng)
-  (query-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele_eng "'")))
+(define (regVerbQuery verb_eng)
+  (query-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" verb_eng "'")))
+
+(define (iregVerbQuery verb_eng)
+  (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" verb_eng "'")))
 
 (define (getPerson ele)
   ;Logik: Check ob Personalpronomen oder Nomen -> Person herausfinden
@@ -121,6 +109,7 @@
   (cond
     [(eq? form "rVerbES")(getVerbHelper (getPerson subj) (string-trim verb "es" #:left? #f))]
     [(eq? form "rVerbS")(getVerbHelper (getPerson subj) (string-trim verb "s" #:left? #f))]
+    [(eq? form "iVerb")(iregVerbQuery verb)]
     [else (getVerbHelper (getPerson subj) verb)]))
 
 
@@ -157,7 +146,7 @@
        ]
     [else (display ".")]))
 
-(sentenceLoop '("He" "walks" "the" "way"))
+(sentenceLoop '("The" "fish" "swims" "in" "the" "lake"))
 
 ;|===========================================|Tests|=================================================|
 
