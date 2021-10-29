@@ -7,7 +7,6 @@
 
 (require "login.rkt")
 
-
 ;============================================|Unused|================================================|
 
 
@@ -36,6 +35,8 @@
 
 ;|========================================|Grammarbased|=============================================|
 
+(define caseOfNoun '())
+
 ;|-------------------------------------<|Helper-Functions|>------------------------------------------|
 
 (define (slist->string slst) ;Convert one list into a whole string
@@ -52,10 +53,11 @@
   (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'")))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
-
 (define (isNoun ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" ele "'"))#t]
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" ele "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun='" (string-trim ele "'s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun='" (string-trim ele "s'" #:left? #f) "'"))]
     [else #f]))
 (define (getNoun noun)
   (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" noun "'")))
