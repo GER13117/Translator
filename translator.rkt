@@ -55,12 +55,12 @@
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun='" (string-trim ele "'s" #:left? #f) "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun='" (string-trim ele "s'" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" ele "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "'s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s'" #:left? #f) "'"))]
     [else #f]))
 (define (getNoun noun)
-  (query-value mdbc (string-append "SELECT translation FROM nouns WHERE eng_noun=" "'" noun "'")))
+  (query-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" noun "'")))
   
 
 ;|-----------------------------------------<|Pronouns|>----------------------------------------------|
