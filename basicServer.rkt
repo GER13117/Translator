@@ -1,30 +1,4 @@
 #lang racket
-(require web-server/servlet
-         web-server/servlet-env)
-
-(require json)
-(require net/url)
-(require http/request)
-
-
- 
-(define (my-app req)
-  (response/jsexpr
-   (bytes->jsexpr (call/input-request
-                   "1.1"
-                   "GET"
-                   "http://192.168.180.34/api/"
-                   empty
-                   read-entity/bytes))))
- 
-(serve/servlet my-app
-               #:listen-ip #f
-               #:servlet-path "/hello.rkt")
-
-
-
-;IO-Server
-
 (require web-server/servlet) 
 (require web-server/servlet-env)
 
@@ -36,7 +10,7 @@
     TEXT/HTML-MIME-TYPE  ; MIME type for content.
     '()                  ; Additional HTTP headers.
     (list                ; Content (in bytes) to send to the browser.
-      (string->bytes/utf-8 content))))
+     content)))
 
 (define (show-time-page request)
   (http-response (number->string (current-seconds))))
@@ -46,7 +20,7 @@
 
 (define (example-post request)
   (define data (request-post-data/raw request))
-  (define str (format "got post data: ~v" data))
+  (define str data)
   (displayln str)
   (http-response str))
 
