@@ -35,10 +35,6 @@
 
 (define caseOfNoun '())
 
-;|-------------------------------------<|Helper-Functions|>------------------------------------------|
-
-(define (slist->string slst) ;Convert one list into a whole string
-  (string-join (map slst) " "))
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
 
@@ -131,21 +127,17 @@
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
-(define answer '())
-(define (sentenceLoop lst (pos 0))
+(define (sentenceLoop input (translation '()) (pos 0))
   (cond
-    [(< pos (length lst))
-       (cond
-         [(isArticle (list-ref lst pos))(set! answer (cons (getArticle (list-ref lst pos) (list-ref lst (+ pos 1))) answer))]
-         [(isNoun (list-ref lst pos))(set! answer (cons (getNoun (list-ref lst pos))answer))]
-         [(isPronoun (list-ref lst pos))(set! answer (cons (getPronoun (list-ref lst pos)) answer))]
-         [(string? (isVerb (list-ref lst pos)))(set! answer (cons (getVerb (list-ref lst (- pos 1)) (list-ref lst pos) (isVerb (list-ref lst pos))) answer))] ;TODO: Make dynamically if Adjective infront or noun in front
-         [(isAdjective (list-ref lst pos))(set! answer (cons "Adjective" answer))]
-         [else (display (list-ref lst pos))])
-       (display answer)
-       (sentenceLoop lst (+ pos 1))
-       ]
-    [else answer]))
+    [(< pos (length input))
+     (cond
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))]
+       [(isNoun (list-ref input pos))(cons (getNoun (list-ref input pos)) translation)]
+       [(isPronoun (list-ref input pos))(cons (getPronoun (list-ref input pos)) translation)]
+       [(string? (isVerb (list-ref input pos)))(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)]
+       [(isAdjective (list-ref input pos))(cons "Adjective" translation)]
+       [else (sentenceLoop input (cons (list-ref input pos) translation) (+ 1 pos))])]
+    [else (reverse translation)]))
 
 
 
@@ -153,7 +145,7 @@
 
 (define (translate request)
   (define data (request-post-data/raw request))
-  (define str (slist->string (sentenceLoop (string-split (bytes->string/utf-8 data)))))
+  (define str (string-join (sentenceLoop (string-split (bytes->string/utf-8 data) " ")) " "))
   (displayln str)
   (http-response str))
 

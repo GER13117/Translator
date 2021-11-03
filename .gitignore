@@ -1,5 +1,6 @@
 *.bak
 *.rkt~
+*.rkt~~
 *.rkt#2#
 *.1
 /.idea
