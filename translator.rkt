@@ -131,17 +131,17 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))] ;REKURSION
-       [(isNoun (list-ref input pos))(cons (getNoun (list-ref input pos)) translation)]
-       [(isPronoun (list-ref input pos))(cons (getPronoun (list-ref input pos)) translation)]
-       [(string? (isVerb (list-ref input pos)))(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)]
-       [(isAdjective (list-ref input pos))(cons "Adjective" translation)]
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isNoun (list-ref input pos))(sentenceLoop input(cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(isPronoun (list-ref input pos))(sentenceLoop input(cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(sentenceLoop input(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
+       [(isAdjective (list-ref input pos))(sentenceLoop input (cons "Adjective" translation)(+ 1 pos))]
        [else (sentenceLoop input (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
 
 
-(sentenceLoop '("The" "fish" "swims"))
+;(sentenceLoop '("The" "fish" "swims"))
 
 (define (translate request)
   (define data (request-post-data/raw request))

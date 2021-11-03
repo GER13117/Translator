@@ -25,7 +25,7 @@
   "1.1"
   "POST"
   "http://localhost:8001/example-post"
-  (string->bytes/utf-8 "The fish swims in the lake")
+  (string->bytes/utf-8 "The fish swims")
   #f
   empty
   read-entity/bytes))
