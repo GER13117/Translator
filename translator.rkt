@@ -131,7 +131,7 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))]
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))] ;REKURSION
        [(isNoun (list-ref input pos))(cons (getNoun (list-ref input pos)) translation)]
        [(isPronoun (list-ref input pos))(cons (getPronoun (list-ref input pos)) translation)]
        [(string? (isVerb (list-ref input pos)))(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)]
@@ -141,7 +141,7 @@
 
 
 
-;(sentenceLoop '("The" "fish" "swims" "in" "the" "lake"))
+(sentenceLoop '("The" "fish" "swims"))
 
 (define (translate request)
   (define data (request-post-data/raw request))
