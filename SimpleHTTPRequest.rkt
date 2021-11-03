@@ -21,11 +21,11 @@
 ;  read-entity/bytes))
 
 
-(call/output-request
+(bytes->string/utf-8 (call/output-request
   "1.1"
   "POST"
   "http://localhost:8001/example-post"
-  #"I am stupid"
+  (string->bytes/utf-8 "I am stupid")
   #f
   empty
-  read-entity/bytes)
+  read-entity/bytes))

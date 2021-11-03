@@ -10,25 +10,18 @@
     TEXT/HTML-MIME-TYPE  ; MIME type for content.
     '()                  ; Additional HTTP headers.
     (list                ; Content (in bytes) to send to the browser.
-     content)))
+     (string->bytes/utf-8 content))))
 
-(define (show-time-page request)
-  (http-response (number->string (current-seconds))))
-
-(define (greeting-page request)  
-  (http-response (list-ref '("Hi" "Hello") (random 2))))
 
 (define (example-post request)
   (define data (request-post-data/raw request))
-  (define str data)
+  (define str (bytes->string/utf-8 data))
   (displayln str)
   (http-response str))
 
 ;; URL routing table (URL dispatcher).
 (define-values (dispatch generate-url)
   (dispatch-rules
-    [("time") show-time-page]
-    [("hello") greeting-page]
     [("example-post") #:method "post" example-post] ; <=== NEW
     [else (error "There is no procedure to handle the url.")]))
 

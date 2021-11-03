@@ -7,8 +7,6 @@
 
 (require "login.rkt")
 
-;============================================|Unused|================================================|
-
 
 
 ;==========================================|WordToWord|==============================================|
@@ -133,22 +131,67 @@
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
+(define answer '())
 (define (sentenceLoop lst (pos 0))
   (cond
     [(< pos (length lst))
        (cond
-         [(isArticle (list-ref lst pos))(display(getArticle (list-ref lst pos) (list-ref lst (+ pos 1))))]
-         [(isNoun (list-ref lst pos))(display (getNoun (list-ref lst pos)))]
-         [(isPronoun (list-ref lst pos))(display (getPronoun (list-ref lst pos)))]
-         [(string? (isVerb (list-ref lst pos)))(display (getVerb (list-ref lst (- pos 1)) (list-ref lst pos) (isVerb (list-ref lst pos))))] ;TODO: Make dynamically if Adjective infront or noun in front
-         [(isAdjective (list-ref lst pos))"Adjective"]
+         [(isArticle (list-ref lst pos))(set! answer (cons (getArticle (list-ref lst pos) (list-ref lst (+ pos 1))) answer))]
+         [(isNoun (list-ref lst pos))(set! answer (cons (getNoun (list-ref lst pos))answer))]
+         [(isPronoun (list-ref lst pos))(set! answer (cons (getPronoun (list-ref lst pos)) answer))]
+         [(string? (isVerb (list-ref lst pos)))(set! answer (cons (getVerb (list-ref lst (- pos 1)) (list-ref lst pos) (isVerb (list-ref lst pos))) answer))] ;TODO: Make dynamically if Adjective infront or noun in front
+         [(isAdjective (list-ref lst pos))(set! answer (cons "Adjective" answer))]
          [else (display (list-ref lst pos))])
-       (display " ")
+       (display answer)
        (sentenceLoop lst (+ pos 1))
        ]
-    [else (display ".")]))
+    [else answer]))
 
-(sentenceLoop '("The" "fish" "swims" "in" "the" "lake"))
+
+
+;(sentenceLoop '("The" "fish" "swims" "in" "the" "lake"))
+
+(define (translate request)
+  (define data (request-post-data/raw request))
+  (define str (slist->string (sentenceLoop (string-split (bytes->string/utf-8 data)))))
+  (displayln str)
+  (http-response str))
+
+
+;============================================|Server|================================================|
+
+(require web-server/servlet) 
+(require web-server/servlet-env)
+
+(define (http-response content)  
+  (response/full
+    200                  ; HTTP response code.
+    #"OK"                ; HTTP response message.
+    (current-seconds)    ; Timestamp.
+    TEXT/HTML-MIME-TYPE  ; MIME type for content.
+    '()                  ; Additional HTTP headers.
+    (list                ; Content (in bytes) to send to the browser.
+     (string->bytes/utf-8 content))))
+
+
+;; URL routing table (URL dispatcher).
+(define-values (dispatch generate-url)
+  (dispatch-rules
+    [("example-post") #:method "post" translate]
+    [else (error "There is no procedure to handle the url.")]))
+
+(define (request-handler request)
+  (dispatch request))
+
+;; Start the server.
+(serve/servlet
+  request-handler
+  #:launch-browser? #f
+  #:quit? #f
+  #:listen-ip "127.0.0.1"
+  #:port 8001
+  #:servlet-regexp #rx"")
+
 
 ;|===========================================|Tests|=================================================|
 
