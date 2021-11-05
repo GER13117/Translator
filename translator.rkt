@@ -32,22 +32,34 @@
 
 
 ;|========================================|Grammarbased|=============================================|
+
 (define input '())
-(define wordTypeList '())
 
-;define getWordTypeList
-
-(define (splitListAtPos x y (z '()))
+(define (getWordTypeList input (typeList '()) (pos 0))
   (cond
-    [(> x 0)(splitListAtPos (- x 1) (rest y) (cons (first y) z ))]
-        [else (reverse z) ]))
+    [(< pos (length input))
+     (cond
+       [(isArticle (list-ref input pos))(getWordTypeList input (cons "article" typeList) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isNoun (list-ref input pos))(getWordTypeList input (cons "noun" typeList)(+ 1 pos))]
+       [(isPronoun (list-ref input pos))(getWordTypeList input(cons "pronoun" typeList)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
+       [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
+       [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])]
+    [else (reverse typeList)]))
+
+(define (splitListAtPos index lst (res_lst '()))
+  (cond
+    [(> index 0) (splitListAtPos (- index 1) (rest lst) (cons (first lst) res_lst ))]
+        [else (reverse res_lst) ]))
   
 
-(define (getCase noun pos)
+(define (getCase noun pos wordTypeList)
   (cond
-   [(member 'verb (splitListAtPos wordTypeList pos))
+   [(member 'verb (splitListAtPos pos wordTypeList ))
     (cond
-      [(#t)"Objekt"])]
+      [(#f)"genitiv"]
+      [(#f)"dativ"]
+      [(#f)"akkusativ"])]
    [else "nominativ"]))
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
   ;sonst --> Obejekt
@@ -62,9 +74,9 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
-(define (getArticle article noun pos)
+(define (getArticle article noun pos wordTypeList)
   (cond
-    [(string-ci=? "nominativ" (getCase noun pos))
+    [(string-ci=? "nominativ" (getCase noun pos wordTypeList))
                   (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'"))]))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
@@ -151,30 +163,27 @@
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
-(define (sentenceLoop input (translation '()) (pos 0))
+(define (sentenceLoop input wordTypeList (translation '()) (pos 0))
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
-       [(isNoun (list-ref input pos))(sentenceLoop input(cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(isPronoun (list-ref input pos))(sentenceLoop input(cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(string? (isVerb (list-ref input pos)))(sentenceLoop input(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
-       [(isAdjective (list-ref input pos))(sentenceLoop input (cons "Adjective" translation)(+ 1 pos))]
-       [else (sentenceLoop input (cons (list-ref input pos) translation) (+ 1 pos))])]
+       [(isArticle (list-ref input pos))(sentenceLoop input wordTypeList (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos wordTypeList) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isNoun (list-ref input pos))(sentenceLoop input wordTypeList (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(isPronoun (list-ref input pos))(sentenceLoop input wordTypeList (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(sentenceLoop input wordTypeList (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
+       [(isAdjective (list-ref input pos))(sentenceLoop input wordTypeList (cons "Adjective" translation)(+ 1 pos))]
+       [else (sentenceLoop input wordTypeList (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
 
-
-(sentenceLoop '("The" "fish" "swims"))
-
+(sentenceLoop '("I" "am" "stupid") (getWordTypeList '("I" "am" "stupid" )))
 
 ;|============================================|Server|================================================|
 
 (define (translate request)
   (define data (request-post-data/raw request))
-  (set! input (string-split (bytes->string/utf-8 data) " "))
-  (set! wordTypeList (getWordTypeList input))
-  (define str (string-join (sentenceLoop input) " "))
+  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                                                                         ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
+  (define str (regexp-replace #rx"''" (string-join (sentenceLoop input (getWordTypeList input)) " ")"'"))
   (displayln str)     ;REMOVE WHEN WORKING
   (http-response str))
 
@@ -196,7 +205,7 @@
 ;; URL routing table (URL dispatcher).
 (define-values (dispatch generate-url)
   (dispatch-rules
-    [("example-post") #:method "post" translate]
+    [("translate") #:method "post" translate]
     [else (error "There is no procedure to handle the url.")]))
 
 (define (request-handler request)
