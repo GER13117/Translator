@@ -32,8 +32,27 @@
 
 
 ;|========================================|Grammarbased|=============================================|
+(define input '())
+(define wordTypeList '())
 
-(define caseOfNoun '())
+;define getWordTypeList
+
+(define (splitListAtPos x y (z '()))
+  (cond
+    [(> x 0)(splitListAtPos (- x 1) (rest y) (cons (first y) z ))]
+        [else (reverse z) ]))
+  
+
+(define (getCase noun pos)
+  (cond
+   [(member 'verb (splitListAtPos wordTypeList pos))
+    (cond
+      [(#t)"Objekt"])]
+   [else "nominativ"]))
+;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
+  ;sonst --> Obejekt
+
+
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
@@ -43,8 +62,10 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
-(define (getArticle article noun)
-  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'")))
+(define (getArticle article noun pos)
+  (cond
+    [(string-ci=? "nominativ" (getCase noun pos))
+                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'"))]))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
@@ -111,6 +132,9 @@
 
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
+; Nominativ wenn kein Verb davor
+; Akkusativ und Dativ wenn Präposition davor: Teilweise über Präposition bestimmbar
+
 
 (define (isAdjective adj)
   #f)
@@ -131,7 +155,7 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1))) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
        [(isNoun (list-ref input pos))(sentenceLoop input(cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input(cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input(cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
@@ -141,16 +165,19 @@
 
 
 
-;(sentenceLoop '("The" "fish" "swims"))
+(sentenceLoop '("The" "fish" "swims"))
+
+
+;|============================================|Server|================================================|
 
 (define (translate request)
   (define data (request-post-data/raw request))
-  (define str (string-join (sentenceLoop (string-split (bytes->string/utf-8 data) " ")) " "))
-  (displayln str)
+  (set! input (string-split (bytes->string/utf-8 data) " "))
+  (set! wordTypeList (getWordTypeList input))
+  (define str (string-join (sentenceLoop input) " "))
+  (displayln str)     ;REMOVE WHEN WORKING
   (http-response str))
 
-
-;============================================|Server|================================================|
 
 (require web-server/servlet) 
 (require web-server/servlet-env)
