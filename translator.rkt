@@ -34,6 +34,16 @@
 ;|========================================|Grammarbased|=============================================|
 
 (define input '())
+(define wordTypeList '())
+
+
+(define (translate request)
+  (define data (request-post-data/raw request))
+  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                                                                         ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
+  (set! wordTypeList (getWordTypeList input))
+  (define str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))
+  (displayln str)     ;REMOVE WHEN WORKING
+  (http-response str))
 
 (define (getWordTypeList input (typeList '()) (pos 0))
   (cond
@@ -44,6 +54,7 @@
        [(isPronoun (list-ref input pos))(getWordTypeList input(cons "pronoun" typeList)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
        [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
+       [(isPrepositon (list-ref input pos))(getWordTypeList input (cons "preposition" typeList)(+ 1 pos))]
        [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])]
     [else (reverse typeList)]))
 
@@ -53,18 +64,29 @@
         [else (reverse res_lst) ]))
   
 
-(define (getCase noun pos wordTypeList)
+(define (getCase noun pos)
   (cond
    [(member 'verb (splitListAtPos pos wordTypeList ))
     (cond
-      [(#f)"genitiv"]
-      [(#f)"dativ"]
-      [(#f)"akkusativ"])]
+      [(member 'preposition (splitListAtPos pos wordTypeList)(
+        [(#f)"genitiv"]
+        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos ) "'LIMIT 1"))"dativ"]               ;TODO: Make the table usable even with multiple meanings of a preposition
+        [(#f)"akkusativ"]
+      ))])]
    [else "nominativ"]))
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
   ;sonst --> Obejekt
 
 
+;|---------------------------------------<|Prepositions|>--------------------------------------------|
+
+(define (isPrepositon ele)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]                                                 ;TODO: Make the table usable even with multiple meanings of a preposition
+    [else #f]))
+
+(define (getPreposition preposition)
+  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" preposition "'LIMIT 1")))
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
@@ -74,17 +96,17 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
-(define (getArticle article noun pos wordTypeList)
+(define (getArticle article noun pos)
   (cond
-    [(string-ci=? "nominativ" (getCase noun pos wordTypeList))
+    [(string-ci=? "nominativ" (getCase noun pos))
                   (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'"))]))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "'s" #:left? #f) "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s'" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "''s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s''" #:left? #f) "'"))]
     [else #f]))
 (define (getNoun noun)
   (query-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" noun "'")))
@@ -163,29 +185,23 @@
     [else #f]))
 
 ;|--------------------------------------<|Main Functions|>-------------------------------------------|
-(define (sentenceLoop input wordTypeList (translation '()) (pos 0))
+(define (sentenceLoop input(translation '()) (pos 0))
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input wordTypeList (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos wordTypeList) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
-       [(isNoun (list-ref input pos))(sentenceLoop input wordTypeList (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(isPronoun (list-ref input pos))(sentenceLoop input wordTypeList (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(string? (isVerb (list-ref input pos)))(sentenceLoop input wordTypeList (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
-       [(isAdjective (list-ref input pos))(sentenceLoop input wordTypeList (cons "Adjective" translation)(+ 1 pos))]
-       [else (sentenceLoop input wordTypeList (cons (list-ref input pos) translation) (+ 1 pos))])]
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
+       [(isAdjective (list-ref input pos))(sentenceLoop input  (cons "Adjective" translation)(+ 1 pos))]
+       [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos)) translation)(+ 1 pos))]
+       [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
 
-(sentenceLoop '("I" "am" "stupid") (getWordTypeList '("I" "am" "stupid" )))
+(sentenceLoop '("I" "am" "stupid"))
 
 ;|============================================|Server|================================================|
-
-(define (translate request)
-  (define data (request-post-data/raw request))
-  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                                                                         ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
-  (define str (regexp-replace #rx"''" (string-join (sentenceLoop input (getWordTypeList input)) " ")"'"))
-  (displayln str)     ;REMOVE WHEN WORKING
-  (http-response str))
 
 
 (require web-server/servlet) 
@@ -198,7 +214,7 @@
     (current-seconds)    ; Timestamp.
     TEXT/HTML-MIME-TYPE  ; MIME type for content.
     '()                  ; Additional HTTP headers.
-    (list                ; Content (in bytes) to send to the browser.
+    (list                ; Content (in bytes) to send to the client.
      (string->bytes/utf-8 content))))
 
 
