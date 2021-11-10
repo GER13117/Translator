@@ -32,13 +32,13 @@
 
 
 ;|========================================|Grammarbased|=============================================|
-
-(define (index-of ele lst)
+(define (index-of lst ele)
   (let loop ((lst lst)
              (idx 0))
     (cond ((empty? lst) #f)
           ((equal? (first lst) ele) idx)
           (else (loop (rest lst) (add1 idx))))))
+
 
 (define input '())
 (define wordTypeList '())
@@ -87,7 +87,9 @@
   ;sonst --> Obejekt
 
 (define (getNext wordType startPos)
-  (list-ref input (index-of wordType (drop wordTypeList (+ 1 startPos)))))
+  ;(displayln  startPos)
+  ;(displayln (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType)))
+  (list-ref input (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType))))
 
 ;|---------------------------------------<|Prepositions|>--------------------------------------------|
 
@@ -97,7 +99,7 @@
     [else #f]))
 
 (define (getPreposition preposition pos)
-  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" (getNext 'noun pos)"'"))) ;TODO: Pronomen und Nomen
+  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" (getNext "noun" pos)"'"))) ;TODO: Pronomen und Nomen
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
@@ -155,15 +157,16 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))
      (cond
        [(string-ci=? ele "I")'ich]
-       [(or (string-ci=? ele "We") (string-ci=? ele "They") (string-ci=? ele "You"))'wirSieSie]
-       [(or (string-ci=? ele "He") (string-ci=? ele "She") (string-ci=? ele "It"))'erSieEs])]
+       [(or (string-ci=? ele "We") (string-ci=? ele "They"))'wirSie]
+       [(or (string-ci=? ele "He") (string-ci=? ele "She") (string-ci=? ele "It"))'erSieEs]
+       [(string-ci=? ele "You")'du])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
                                                                                ;TODO: Du (you) fixen
 (define (getVerbHelper person verb)
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
        [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSieSie)(string-append (regVerbQuery verb) "en")]
+       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
        [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
