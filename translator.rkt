@@ -33,6 +33,13 @@
 
 ;|========================================|Grammarbased|=============================================|
 
+(define (index-of ele lst)
+  (let loop ((lst lst)
+             (idx 0))
+    (cond ((empty? lst) #f)
+          ((equal? (first lst) ele) idx)
+          (else (loop (rest lst) (add1 idx))))))
+
 (define input '())
 (define wordTypeList '())
 
@@ -41,7 +48,10 @@
   (define data (request-post-data/raw request))
   (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                                                                         ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
   (set! wordTypeList (getWordTypeList input))
-  (define str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))
+  (define str "Oops")
+  (cond
+    [(eq? 1 (length input))(set! str "TEST")]
+    [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))])
   (displayln str)     ;REMOVE WHEN WORKING
   (http-response str))
 
@@ -62,7 +72,6 @@
   (cond
     [(> index 0) (splitListAtPos (- index 1) (rest lst) (cons (first lst) res_lst ))]
         [else (reverse res_lst) ]))
-  
 
 (define (getCase noun pos)
   (cond
@@ -77,6 +86,8 @@
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
   ;sonst --> Obejekt
 
+(define (getNext wordType startPos)
+  (list-ref input (index-of wordType (drop wordTypeList (+ 1 startPos)))))
 
 ;|---------------------------------------<|Prepositions|>--------------------------------------------|
 
@@ -85,8 +96,8 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]                                                 ;TODO: Make the table usable even with multiple meanings of a preposition
     [else #f]))
 
-(define (getPreposition preposition)
-  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" preposition "'LIMIT 1")))
+(define (getPreposition preposition pos)
+  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" (getNext 'noun pos)"'"))) ;TODO: Pronomen und Nomen
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
@@ -194,7 +205,7 @@
        [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
        [(isAdjective (list-ref input pos))(sentenceLoop input  (cons "Adjective" translation)(+ 1 pos))]
-       [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos)) translation)(+ 1 pos))]
+       [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos) pos) translation)(+ 1 pos))]
        [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
