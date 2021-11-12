@@ -79,7 +79,7 @@
     (cond
       [(member 'preposition (splitListAtPos pos wordTypeList)(
         [(#f)"genitiv"]
-        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos ) "'LIMIT 1"))"dativ"]               ;TODO: Make the table usable even with multiple meanings of a preposition
+        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"]               ;TODO: Make the table usable even with multiple meanings of a preposition
         [(#f)"akkusativ"]
       ))])]
    [else "nominativ"]))
@@ -99,7 +99,31 @@
     [else #f]))
 
 (define (getPreposition preposition pos)
-  (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" (getNext "noun" pos)"'"))) ;TODO: Pronomen und Nomen
+  (define nextNoun (getNext "noun" pos))
+  (define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))
+  (cond
+    [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
+      (cond
+        [(regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)
+         (string-append ger_preposition (cond
+                                          [(string-ci=? (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE ger_prep='" ger_preposition "'")) "dativ")
+                                           (cond
+                                             [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))"n"]
+                                             [else
+                                              (cond
+                                                [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"]
+                                                [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"r"]
+                                                [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"])])]))]
+        [else (string-append ger_preposition (cond
+                                               [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM nouns WHERE eng_noun ='" nextNoun "'")))""]
+                                               [else (cond
+                                                       [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))" den"]
+                                                       [else
+                                                        (cond
+                                                          [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"]
+                                                          [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" der"]
+                                                          [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"])])]))])]
+    [else ger_preposition]));TODO: Pronomen und Nomen
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
