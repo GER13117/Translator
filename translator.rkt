@@ -2,15 +2,19 @@
 (require db)
 
 ;Autoren: Okke und manchmal Johann
+
+
 ;TODO: Funktion um regelmäßige Verben in Datenbank zu schreiben Link regelmäßige deutsche verben: https://de.wiktionary.org/wiki/Verzeichnis:Deutsch/Regelm%C3%A4%C3%9Fige_Verben
 ;TODO: .!? am Ende von Sätzen
 ;TODO: How to store the results
+;TODO: Usefull error messages for the users: The word which has problem, (the problem)
 
+;TODO: Verben als Auslöser für Dativ
 (require "login.rkt")
 
 
 
-;==========================================|WordToWord|==============================================|
+;==========================================|WordToWord|==============================================| ;UNUSED RIGHT NOW
 (define (checkForCorrectReturn ele)
   (query-maybe-value mdbc (string-append "SELECT german FROM wordtoword WHERE english=" "'" (symbol->string ele) "'")))
 
@@ -33,7 +37,7 @@
 
 
 ;|========================================|Grammarbased|=============================================|
-(define (index-of lst ele)
+(define (index-of lst ele) ;in alten (Schul-)Versionen nicht in base
   (let loop ((lst lst)
              (idx 0))
     (cond ((empty? lst) #f)
@@ -41,13 +45,13 @@
           (else (loop (rest lst) (add1 idx))))))
 
 
-(define input '())
-(define wordTypeList '())
+(define input '()) ;Global list storing the input
+(define wordTypeList '()) ;Global list storing the wordtypes
 
 
-(define (translate request)
+(define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
-  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                                                                         ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
+  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                 ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
   (set! wordTypeList (getWordTypeList input))
   (define str "Oops")
   (cond
@@ -56,11 +60,12 @@
   (displayln str)     ;REMOVE WHEN WORKING
   (http-response str))
 
-(define (getWordTypeList input (typeList '()) (pos 0))
-  (cond
+;TODO: Alle Wortarten / Wörter aus Tabellen müssen verwendet werden können --> schreiben von Get uns Is für die restlichen wortarten
+(define (getWordTypeList input (typeList '()) (pos 0)) ;gets the wordtype of the inputed words by using the "is" functions of the different wordTypes.
+  (cond                                                ;returns a list
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(getWordTypeList input (cons "article" typeList) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isArticle (list-ref input pos))(getWordTypeList input (cons "article" typeList) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun (ALLGEMEIN: Catchen von Fehlern)
        [(isNoun (list-ref input pos))(getWordTypeList input (cons "noun" typeList)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(getWordTypeList input(cons "pronoun" typeList)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
@@ -80,25 +85,26 @@
     (cond
       [(member 'preposition (splitListAtPos pos wordTypeList)(
         [(#f)"genitiv"]
-        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"]               ;TODO: Make the table usable even with multiple meanings of a preposition
+        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"] ;TODO: Make the table usable even with multiple meanings of a preposition
         [(#f)"akkusativ"]
       ))])]
    [else "nominativ"]))
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
   ;sonst --> Obejekt
 
+;TODO: Wenn für Nomen gesucht wird auch Pronomen beachten
 (define (getNext wordType startPos)
-  ;(displayln  startPos)
-  ;(displayln (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType)))
   (list-ref input (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType))))
 
 ;|---------------------------------------<|Prepositions|>--------------------------------------------|
 
+;TODO: Make the table usable even with multiple meanings of a preposition
 (define (isPrepositon ele)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]                                                 ;TODO: Make the table usable even with multiple meanings of a preposition
+    [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]
     [else #f]))
 
+;TODO: Genitiv und Akkusativ hinzufügen
 (define (getPreposition preposition pos)
   (define nextNoun (getNext "noun" pos))
   (define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))
@@ -107,6 +113,7 @@
       (cond
         [(regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)
          (string-append ger_preposition (cond
+                                          ;Genitiv
                                           [(string-ci=? (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE ger_prep='" ger_preposition "'")) "dativ")
                                            (cond
                                              [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))"n"]
@@ -114,17 +121,22 @@
                                               (cond
                                                 [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"]
                                                 [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"r"]
-                                                [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"])])]))]
+                                                [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"])])]
+                                          ;Akkusativ
+                                          ))]
         [else (string-append ger_preposition (cond
-                                               [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM nouns WHERE eng_noun ='" nextNoun "'")))""]
-                                               [else (cond
+                                               [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM nouns WHERE eng_noun ='" nextNoun "'")))""] ;Länder haben keinen Artikel
+                                               [else (cond                                                                                                              ;TODO: Condition für smallplace anstatt von else: Es ist nicht small place wenn nicht bigplace
                                                        [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))" den"]
                                                        [else
                                                         (cond
                                                           [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"]
                                                           [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" der"]
                                                           [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"])])]))])]
-    [else ger_preposition]));TODO: Pronomen und Nomen
+    [else ger_preposition]));TODO: Funktion auch für Pronomen verwendbar machen:
+                                  ;Findung von ger_preposition: nextNoun und proNoun
+;                                                               --> condition um gucken welche Positon kleiner ist
+;                                                               --> festlegen von nextObject (als Ersatz für nextNoun) und ger_preposition
 
 
 ;|-----------------------------------------<|Articles|>----------------------------------------------|
@@ -134,6 +146,7 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
+;TODO: Bedingungen für alle Fälle (logik von getPreposition übernehmen --> 
 (define (getArticle article noun pos)
   (cond
     [(string-ci=? "nominativ" (getCase noun pos))
@@ -143,7 +156,7 @@
 (define (isNoun ele)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "''s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "''s" #:left? #f) "'"))] ;TODO: Für genitiv nutzen
     [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s''" #:left? #f) "'"))]
     [else #f]))
 (define (getNoun noun)
@@ -161,8 +174,9 @@
   (query-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" pronoun "'")))
 
 ;|------------------------------------------<|Verbs|>------------------------------------------------|
-
-(define (isVerb ele) ;TODO: Make functional: (-ing) ;TODO: REIHENFOLGE OPTMIEREN
+;TODO: Make functional: (-ing)
+;TODO: REIHENFOLGE OPTMIEREN
+(define (isVerb ele) 
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'"  ele "'"))"iVerb"]
     [(query-maybe-value mdbc (string-append "SELECT ger_wortstamm FROM verbs WHERE eng_verb=" "'" ele "'"))"rVerb"]
@@ -177,7 +191,6 @@
   (query-value mdbc (string-append "SELECT ger_verb FROM irregular_verbs WHERE eng_verb=" "'" verb_eng "'")))
 
 (define (getPerson ele)
-  ;Logik: Check ob Personalpronomen oder Nomen -> Person herausfinden
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))
      (cond
@@ -186,7 +199,7 @@
        [(or (string-ci=? ele "He") (string-ci=? ele "She") (string-ci=? ele "It"))'erSieEs]
        [(string-ci=? ele "You")'du])]
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
-                                                                               ;TODO: Du (you) fixen
+
 (define (getVerbHelper person verb)
      (cond
        [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
@@ -195,7 +208,7 @@
        [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
-(define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front
+(define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front --> implentieren von getNext-Funtktion (Anstatt von subj die position des Verbs übergeben)
   (cond
     [(eq? form "rVerbES")(getVerbHelper (getPerson subj) (string-trim verb "es" #:left? #f))]
     [(eq? form "rVerbS")(getVerbHelper (getPerson subj) (string-trim verb "s" #:left? #f))]
@@ -205,10 +218,12 @@
 
 
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
-; Nominativ wenn kein Verb davor
 ; Akkusativ und Dativ wenn Präposition davor: Teilweise über Präposition bestimmbar
 
-
+;TODO: Komplette Logik für Adjektive:
+;     - Fälle
+;     - Geschlecht
+;     - numerus
 (define (isAdjective adj)
   #f)
 ;(define (getCase subj))
@@ -223,12 +238,12 @@
     [(query-maybe-value mdbc (string-append "SELECT eng_question_word FROM verbs WHERE eng_verb=" "'" ele "'")) #t]
     [else #f]))
 
-;|--------------------------------------<|Main Functions|>-------------------------------------------|
+;|------------------------------------<|Translation Interator|>--------------------------------------|
 (define (sentenceLoop input(translation '()) (pos 0))
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
        [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
@@ -237,8 +252,6 @@
        [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
-
-(sentenceLoop '("I" "am" "stupid"))
 
 ;|============================================|Server|================================================|
 
