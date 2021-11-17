@@ -1,6 +1,7 @@
 #lang racket
 (require db)
 
+;Autoren: Okke und manchmal Johann
 ;TODO: Funktion um regelmäßige Verben in Datenbank zu schreiben Link regelmäßige deutsche verben: https://de.wiktionary.org/wiki/Verzeichnis:Deutsch/Regelm%C3%A4%C3%9Fige_Verben
 ;TODO: .!? am Ende von Sätzen
 ;TODO: How to store the results
