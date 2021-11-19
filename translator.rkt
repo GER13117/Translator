@@ -71,7 +71,7 @@
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
        [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(getWordTypeList input (cons "preposition" typeList)(+ 1 pos))]
-       [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])]
+       [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
     [else (reverse typeList)]))
 
 (define (splitListAtPos index lst (res_lst '()))
@@ -147,10 +147,10 @@
     [else #f]))
 
 ;TODO: Bedingungen für alle Fälle (logik von getPreposition übernehmen --> 
-(define (getArticle article noun pos)
+(define (getArticle article pos)
   (cond
-    [(string-ci=? "nominativ" (getCase noun pos))
-                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" noun "'AND eng_article='" article "'"))]))
+    [(string-ci=? "nominativ" (getCase (getNext "noun" pos) pos))
+                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos) "'AND eng_article='" article "'"))]))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
@@ -243,7 +243,7 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) (list-ref input (+ pos 1)) pos) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) pos) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
        [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
