@@ -224,13 +224,28 @@
 ;     - Fälle
 ;     - Geschlecht
 ;     - numerus
+;Genitiv: the ball of the small boy -> der Ball des kleinEN Jungen
+
+(define (AdjectiveQuery adjective_eng)
+  (query-value mdbc (string-append "SELECT ger_wortstamm FROM adjectives WHERE eng_adjective=" "'" adjective_eng "'")))
+   ;funktioniert wie regVerbQuery, muss ggf. auf die Tabellen angepasst werden
+
+(define (getAdjective adj pos)
+  (cond
+    [(eq? wordsbefor "of") (string-append (AdjectiveQuery adjective) "en")]
+    [else (display "ist kein Genitiv")])
+  )
+   ;wenn bis zu drei Wörter davor ein "of" steht -> Genitiv und "en" wird drangehängt
+
+(define (wordsbefor pos)() ;gibt die drei Wörter vor dem eigentlichen Wort wieder
+
 (define (isAdjective adj)
   #f)
 ;(define (getCase subj))
 
 
 (define (getAdjective foo bar)
-  (displayln("AAAAAAAAAAAAA")))
+  (displayln("AAAAAAAAAAAAA"))) ;was ist foo und bar?
 ;|-----------------------------------------<|Unsorted|>----------------------------------------------|
 (define (checkForQuestion ele)
   (cond
