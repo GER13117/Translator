@@ -52,12 +52,13 @@
 (define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
   (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                 ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
+  (displayln (string-append "INPUT: " (bytes->string/utf-8 data)))
   (set! wordTypeList (getWordTypeList input))
   (define str "Oops")
   (cond
     [(eq? 1 (length input))(set! str "TEST")]
     [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))])
-  (displayln str)     ;REMOVE WHEN WORKING
+  (displayln (string-append "OUTPUT: " str))     ;REMOVE WHEN WORKING
   (http-response str))
 
 ;TODO: Alle Wortarten / Wörter aus Tabellen müssen verwendet werden können --> schreiben von Get uns Is für die restlichen wortarten
@@ -98,7 +99,16 @@
 
 ;|---------------------------------------<|Prepositions|>--------------------------------------------|
 
-;TODO: Make the table usable even with multiple meanings of a preposition
+; FUNKTIONIERT EXTREM BESCHISSEN: Die Implementierung von Pronomen lief nicht gut: pronomen müssen gesondert behandelt werden --> "person" als usecase in die Datenbank einplfegen --> Case zur Bildung von prepositionen für "person"
+
+;BUGS:
+;- Fehler wenn pronomen aber kein nomen vorhanden --> list-ref returned ein komisches #f, dass weder als string noch als boolean verwendet werden kann --> LÖSUNG: ????
+;- ger_preposotion muss dynamisch (passend ob pronomen oder nomen festgelegt werden)
+
+;TODO:
+;- Namen (unbekannte Worte) sollen als Person behandelt werden --> WIE  AUCH IMMER
+
+
 (define (isPrepositon ele)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]
@@ -106,8 +116,26 @@
 
 ;TODO: Genitiv und Akkusativ hinzufügen
 (define (getPreposition preposition pos)
-  (define nextNoun (getNext "noun" pos))
-  (define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))
+  (define nextNoun #f)                                         ;Das ist nicht schön
+  (define nextPronoun #f)                                    ;Das auch nicht
+ 
+  (cond
+    [(string? (getNext "noun" pos))(set! nextNoun (getNext "noun" pos))]
+    [(string? (getNext "pronoun" pos))(set! nextPronoun (getNext "pronoun" pos))])
+  (define nextObjectQuery "")                             ;das ebenso nicht
+
+  
+  (cond
+    [(and (string? nextNoun) (string? nextPronoun))
+     (cond
+       [(< (index-of input nextPronoun) (index-of input nextNoun))(set! nextObjectQuery (string-append " pronouns WHERE eng_pronoun'" nextPronoun "'"))]
+       [else (set! nextObjectQuery (string-append " nouns WHERE eng_noun='" nextNoun "'"))])]
+    [else (cond
+            [(string? nextNoun)(set! nextObjectQuery (string-append " nouns WHERE eng_noun='" nextNoun "'"))]
+            [else (set! nextObjectQuery (string-append " pronouns WHERE eng_pronoun='" nextPronoun "'"))])])
+  
+  (define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'"))) ;FIXEN
+  ;(define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))
   (cond
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
       (cond
@@ -116,23 +144,23 @@
                                           ;Genitiv
                                           [(string-ci=? (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE ger_prep='" ger_preposition "'")) "dativ")
                                            (cond
-                                             [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))"n"]
+                                             [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM"nextObjectQuery)))"n"]
                                              [else
                                               (cond
-                                                [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"]
-                                                [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"r"]
-                                                [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))"m"])])]
+                                                [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"]
+                                                [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM"nextObjectQuery)))"r"]
+                                                [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"])])]
                                           ;Akkusativ
                                           ))]
         [else (string-append ger_preposition (cond
-                                               [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM nouns WHERE eng_noun ='" nextNoun "'")))""] ;Länder haben keinen Artikel
+                                               [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery)))""] ;Länder haben keinen Artikel
                                                [else (cond                                                                                                              ;TODO: Condition für smallplace anstatt von else: Es ist nicht small place wenn nicht bigplace
-                                                       [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun='" nextNoun "'")))" den"]
+                                                       [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM"nextObjectQuery)))" den"]
                                                        [else
                                                         (cond
-                                                          [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"]
-                                                          [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" der"]
-                                                          [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun='" nextNoun "'")))" dem"])])]))])]
+                                                          [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"]
+                                                          [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" der"]
+                                                          [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"])])]))])]
     [else ger_preposition]));TODO: Funktion auch für Pronomen verwendbar machen:
                                   ;Findung von ger_preposition: nextNoun und proNoun
 ;                                                               --> condition um gucken welche Positon kleiner ist
@@ -220,6 +248,8 @@
 ;|----------------------------------------<|Adjectives|>---------------------------------------------|
 ; Akkusativ und Dativ wenn Präposition davor: Teilweise über Präposition bestimmbar
 
+;Sorry Johann, dass ich bei dir rumgepfuscht habe. Du hattes klammer vergessen xoxo
+
 ;TODO: Komplette Logik für Adjektive:
 ;     - Fälle
 ;     - Geschlecht
@@ -232,20 +262,17 @@
 
 (define (getAdjective adj pos)
   (cond
-    [(eq? wordsbefor "of") (string-append (AdjectiveQuery adjective) "en")]
+    [(eq? wordsbefor "of") (string-append (AdjectiveQuery adj) "en")]
     [else (display "ist kein Genitiv")])
   )
    ;wenn bis zu drei Wörter davor ein "of" steht -> Genitiv und "en" wird drangehängt
 
-(define (wordsbefor pos)() ;gibt die drei Wörter vor dem eigentlichen Wort wieder
+(define (wordsbefor pos)
+  (displayln "Work in progress")) ;gibt die drei Wörter vor dem eigentlichen Wort wieder
 
 (define (isAdjective adj)
   #f)
 ;(define (getCase subj))
-
-
-(define (getAdjective foo bar)
-  (displayln("AAAAAAAAAAAAA"))) ;was ist foo und bar?
 ;|-----------------------------------------<|Unsorted|>----------------------------------------------|
 (define (checkForQuestion ele)
   (cond
