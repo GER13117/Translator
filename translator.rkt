@@ -9,6 +9,8 @@
 ;TODO: How to store the results
 ;TODO: Usefull error messages for the users: The word which has problem, (the problem)
 
+;TODO: Handlen von Namen / unbekannten Wörtern in Bezug auf Bilden von Artikeln, Präpositionen, Adjektiven etc.
+
 ;TODO: Verben als Auslöser für Dativ
 (require "login.rkt")
 
@@ -95,7 +97,10 @@
 
 ;TODO: Wenn für Nomen gesucht wird auch Pronomen beachten
 (define (getNext wordType startPos)
-  (list-ref input (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType))))
+  (cond
+    [(not (boolean? (index-of (drop wordTypeList (+ 1 startPos)) wordType)))
+     (list-ref input (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType)))]
+    [else #f]))
 
 ;|---------------------------------------<|Prepositions|>--------------------------------------------|
 
@@ -118,24 +123,31 @@
 (define (getPreposition preposition pos)
   (define nextNoun #f)                                         ;Das ist nicht schön
   (define nextPronoun #f)                                    ;Das auch nicht
- 
+  (define ger_preposition #f)                               ;Das auch absolut nicht
   (cond
-    [(string? (getNext "noun" pos))(set! nextNoun (getNext "noun" pos))]
-    [(string? (getNext "pronoun" pos))(set! nextPronoun (getNext "pronoun" pos))])
-  (define nextObjectQuery "")                             ;das ebenso nicht
+    [(string? (getNext "noun" pos))(
+                                    (lambda ()
+                                      (set! nextNoun (getNext "noun" pos))
+                                      (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))))]
+    [(string? (getNext "pronoun" pos))(
+                                       (lambda ()
+                                         (set! nextPronoun (getNext "pronoun" pos))
+                                         (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))))])      ;TODO: smallplace durch person
 
+
+  (define nextObjectQuery
+    (cond
+      [(and (string? nextNoun) (string? nextPronoun))
+       (cond
+         [(< (index-of input nextPronoun) (index-of input nextNoun))(string-append " pronouns WHERE eng_pronoun'" nextPronoun "'")]
+         [else (string-append " nouns WHERE eng_noun='" nextNoun "'")])]
+      [else (cond
+              [(string? nextNoun)(string-append " nouns WHERE eng_noun='" nextNoun "'")]
+              [else (string-append " pronouns WHERE eng_pronoun='" nextPronoun "'")])]))
   
-  (cond
-    [(and (string? nextNoun) (string? nextPronoun))
-     (cond
-       [(< (index-of input nextPronoun) (index-of input nextNoun))(set! nextObjectQuery (string-append " pronouns WHERE eng_pronoun'" nextPronoun "'"))]
-       [else (set! nextObjectQuery (string-append " nouns WHERE eng_noun='" nextNoun "'"))])]
-    [else (cond
-            [(string? nextNoun)(set! nextObjectQuery (string-append " nouns WHERE eng_noun='" nextNoun "'"))]
-            [else (set! nextObjectQuery (string-append " pronouns WHERE eng_pronoun='" nextPronoun "'"))])])
+;(set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))
+;(set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))
   
-  (define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'"))) ;FIXEN
-  ;(define ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))
   (cond
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
       (cond
