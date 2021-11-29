@@ -32,8 +32,8 @@
    [(member 'verb (splitListAtPos pos wordTypeList ))
     (cond
       [(member 'preposition (splitListAtPos pos wordTypeList)(
-        [(#f)"genitiv"]
+        [(or (regexp-match? #rx"''s$" noun) (regexp-match? #rx"s''$" noun))"genitiv"] ;TODO: wenn of davor
         [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"] ;TODO: Make the table usable even with multiple meanings of a preposition
-        [(#f)"akkusativ"]
+        [(string-ci=? "akkusativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"akkusativ"]
       ))])]
    [else "nominativ"]))

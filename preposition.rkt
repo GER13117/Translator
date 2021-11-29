@@ -1,15 +1,5 @@
 #lang racket
 
-
-; FUNKTIONIERT EXTREM BESCHISSEN: Die Implementierung von Pronomen lief nicht gut: pronomen müssen gesondert behandelt werden --> "person" als usecase in die Datenbank einplfegen --> Case zur Bildung von prepositionen für "person"
-
-;BUGS:
-;- Fehler wenn pronomen aber kein nomen vorhanden --> list-ref returned ein komisches #f, dass weder als string noch als boolean verwendet werden kann --> LÖSUNG: ????
-;- ger_preposotion muss dynamisch (passend ob pronomen oder nomen festgelegt werden)
-
-;TODO:
-;- Namen (unbekannte Worte) sollen als Person behandelt werden --> WIE  AUCH IMMER
-
 (require db)
 (require net/url)
 (require json)
@@ -62,8 +52,6 @@
      (call/input-url (string->url (string-append "https://api.genderize.io/?name=" name))
                                  get-pure-port
                                  (compose string->jsexpr port->string)) 'gender))
-
-
   
   (define (senseQuery)
     (cond
@@ -84,26 +72,29 @@
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
       (cond
         [(regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)
-         (string-append ger_preposition (cond
-                                          [(string-ci=? "smallplace" (senseQuery))
-                                           (cond
-                                             [(string-ci=? "plural" (numerusQuery))"n"]
-                                             [else
-                                              (cond
-                                                [(string-ci=? "male" (genderQuery))"m"]
-                                                [(string-ci=? "female" (genderQuery))"r"]
-                                                [(string-ci=? "neutral" (genderQuery))"m"])])]
-                                          [(string-ci=? "person" (senseQuery))""]
-                                          ))]
-        [else (string-append ger_preposition (cond
-                                               [(string-ci=? "bigplace" (senseQuery))""] ;Länder haben keinen Artikel
-                                               [(string-ci=? "smallplace" (senseQuery)) (cond                                                                                                              ;TODO: Condition für smallplace anstatt von else: Es ist nicht small place wenn nicht bigplace
-                                                       [(string-ci=? "plural" (numerusQuery))" den"]
-                                                       [else
-                                                        (cond
-                                                          [(string-ci=? "male" (genderQuery))" dem"]
-                                                          [(string-ci=? "female" (genderQuery))" der"]
-                                                          [(string-ci=? "neutral" (genderQuery))" dem"])])]
-                                               ))])]
+         (string-append ger_preposition
+                       (cond
+                         [(string-ci=? "smallplace" (senseQuery))
+                          (cond
+                            [(string-ci=? "plural" (numerusQuery))"n"]
+                            [else
+                             (cond
+                               [(string-ci=? "male" (genderQuery))"m"]
+                               [(string-ci=? "female" (genderQuery))"r"]
+                               [(string-ci=? "neutral" (genderQuery))"m"])])]
+                         [(string-ci=? "person" (senseQuery))""]
+                         ))]
+        [else (string-append ger_preposition
+                            (cond
+                              [(string-ci=? "bigplace" (senseQuery))""] ;Länder haben keinen Artikel
+                              [(string-ci=? "smallplace" (senseQuery))
+                               (cond
+                                 [(string-ci=? "plural" (numerusQuery))" den"]
+                                 [else
+                                  (cond
+                                    [(string-ci=? "male" (genderQuery))" dem"]
+                                    [(string-ci=? "female" (genderQuery))" der"]
+                                    [(string-ci=? "neutral" (genderQuery))" dem"])])]
+                              ))])]
     [else ger_preposition]))
 
