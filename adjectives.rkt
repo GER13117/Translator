@@ -23,13 +23,19 @@
 
 (define (getAdjective adj pos wordTypeList input)
   (cond
-    [(eq? wordsbefor "of") (string-append (AdjectiveQuery adj) "en")]
+    [(eq? wordsbefor #t) (string-append (AdjectiveQuery adj) "en")]
     [else (display "ist kein Genitiv")])
   )
    ;wenn bis zu drei Wörter davor ein "of" steht -> Genitiv und "en" wird drangehängt
 
 (define (wordsbefor pos)
-  (displayln "Work in progress")) ;gibt die drei Wörter vor dem eigentlichen Wort wieder
+  (cond
+    [eq? (list-ref input (- pos 1)) "of"]
+    [eq? (list-ref input (- pos 2)) "of"]
+    [eq? (list-ref input (- pos 3)) "of"]
+    [else #f]))
+
+
 
 (define (isAdjective adj)
   #f)
