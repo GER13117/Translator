@@ -56,8 +56,7 @@
       (cond
         [(regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)
          (string-append ger_preposition (cond
-                                          ;Genitiv
-                                          [(string-ci=? (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE ger_prep='" ger_preposition "'")) "dativ")
+                                          [(string-ci=? "smallplace" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery)))
                                            (cond
                                              [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM" nextObjectQuery)))"n"]
                                              [else
@@ -65,7 +64,7 @@
                                                 [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"]
                                                 [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"r"]
                                                 [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"])])]
-                                          ;Akkusativ
+                                          [(string-ci=? "person" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery)))""]
                                           ))]
         [else (string-append ger_preposition (cond
                                                [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery)))""] ;Länder haben keinen Artikel
@@ -75,6 +74,7 @@
                                                         (cond
                                                           [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"]
                                                           [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" der"]
-                                                          [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"])])]))])]
+                                                          [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"])])]
+                                               ))])]
     [else ger_preposition]))
 
