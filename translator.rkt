@@ -64,7 +64,7 @@
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
        [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(getWordTypeList input (cons "preposition" typeList)(+ 1 pos))]
-       [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
+       [else (getWordTypeList input (cons "name" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
     [else (reverse typeList)]))
 
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
