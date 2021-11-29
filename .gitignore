@@ -3,6 +3,7 @@
 *.rkt~~
 *.rkt#2#
 *.1
+*.exe
 /.idea
 /compiled
 
