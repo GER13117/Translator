@@ -18,7 +18,7 @@
 ;Genitiv: the ball of the small boy -> der Ball des kleinEN Jungen
 
 (define (AdjectiveQuery adjective_eng)
-  (query-value mdbc (string-append "SELECT ger_wortstamm FROM adjectives WHERE eng_adjective=" "'" adjective_eng "'")))
+  (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" adjective_eng "'")))
    ;funktioniert wie regVerbQuery, muss ggf. auf die Tabellen angepasst werden
 
 (define (getAdjective adj pos wordTypeList input)
@@ -35,8 +35,9 @@
     [eq? (list-ref input (- pos 3)) "of"]
     [else #f]))
 
+(define (isAdjective ele)
+  (cond
+    [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" ele "'LIMIT 1"))#t]
+    [else #f]))
 
-
-(define (isAdjective adj)
-  #f)
 ;(define (getCase subj))
