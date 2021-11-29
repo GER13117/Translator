@@ -21,10 +21,10 @@
   (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" adjective_eng "'")))
    ;funktioniert wie regVerbQuery, muss ggf. auf die Tabellen angepasst werden
 
-(define (getAdjective adj pos wordTypeList input)
+(define (getAdjective adjectives pos wordTypeList input)
   (cond
-    [(eq? (wordsbefore pos input) #t) (string-append (AdjectiveQuery adj) "en")]
-    [else (display "ist kein Genitiv")])
+    [(eq? (wordsbefore pos input) #t) (string-append (AdjectiveQuery adjectives) "en")]
+    [else "kein genitiv"])
   )
    ;wenn bis zu drei Wörter davor ein "of" steht -> Genitiv und "en" wird drangehängt
 
