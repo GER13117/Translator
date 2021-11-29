@@ -3,6 +3,7 @@
 (require "login.rkt")
 (require "preposition.rkt")
 (require "adjectives.rkt")
+(require "article.rkt")
 (require "helper_funcs.rkt")
 ;Autoren: Okke und manchmal Johann
 
@@ -31,13 +32,7 @@
                 [(checkForCorrectReturn ele) (display (string-append(wordToWordQuery ele) " "))]
                 [else (display (string-append (symbol->string ele) " "))])) lst))
 
-(define (transSQL input)
-  (wordByWordSQL input) (newline)
-  (transSQL (read (open-input-string (string-append "(" (read-line) ")")))))
-
 ;(transSQL (read (open-input-string (string-append "(" (read-line) ")"))))
-
-
 
 ;|========================================|Grammarbased|=============================================|
 
@@ -72,41 +67,8 @@
        [else (getWordTypeList input (cons "noun" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
     [else (reverse typeList)]))
 
-(define (splitListAtPos index lst (res_lst '()))
-  (cond
-    [(> index 0) (splitListAtPos (- index 1) (rest lst) (cons (first lst) res_lst ))]
-        [else (reverse res_lst) ]))
-
-(define (getCase noun pos)
-  (cond
-   [(member 'verb (splitListAtPos pos wordTypeList ))
-    (cond
-      [(member 'preposition (splitListAtPos pos wordTypeList)(
-        [(#f)"genitiv"]
-        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"] ;TODO: Make the table usable even with multiple meanings of a preposition
-        [(#f)"akkusativ"]
-      ))])]
-   [else "nominativ"]))
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
   ;sonst --> Obejekt
-
-
-
-;|---------------------------------------<|Prepositions|>--------------------------------------------|
-
-
-;|-----------------------------------------<|Articles|>----------------------------------------------|
-
-(define (isArticle ele) ;TODO: He walks the way --> Er geht den Weg (NICHT Er geht der Weg)
-  (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
-    [else #f]))
-
-;TODO: Bedingungen für alle Fälle (logik von getPreposition übernehmen --> 
-(define (getArticle article pos)
-  (cond
-    [(string-ci=? "nominativ" (getCase (getNext "noun" pos wordTypeList input) pos))
-                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos wordTypeList input) "'AND eng_article='" article "'"))]))
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
@@ -186,7 +148,7 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) pos) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
+       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) pos wordTypeList input) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
        [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]

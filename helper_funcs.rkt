@@ -1,6 +1,10 @@
 #lang racket
+(require db)
+(require "login.rkt")
 (provide getNext)
 (provide index-of)
+(provide splitListAtPos)
+(provide getCase)
 
 (define (getNext wordType startPos wordTypeList input)
   (cond
@@ -17,3 +21,19 @@
           ((equal? (first lst) ele) idx)
           (else (loop (rest lst) (add1 idx))))))
 
+
+(define (splitListAtPos index lst (res_lst '()))
+  (cond
+    [(> index 0) (splitListAtPos (- index 1) (rest lst) (cons (first lst) res_lst ))]
+        [else (reverse res_lst) ]))
+
+(define (getCase noun pos wordTypeList input)
+  (cond
+   [(member 'verb (splitListAtPos pos wordTypeList ))
+    (cond
+      [(member 'preposition (splitListAtPos pos wordTypeList)(
+        [(#f)"genitiv"]
+        [(string-ci=? "dativ" query-value (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (list-ref input pos) "'LIMIT 1"))"dativ"] ;TODO: Make the table usable even with multiple meanings of a preposition
+        [(#f)"akkusativ"]
+      ))])]
+   [else "nominativ"]))

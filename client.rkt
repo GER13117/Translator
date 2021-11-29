@@ -3,7 +3,12 @@
 (require json)
 (require net/url)
 (require http/request)
-
+(display
+ "Welcome to our Calculator
+By now it just features a few things.
+Things like adjectives aren't working by now. But feel free to contribute.
+______________________________________________________________________________ \n
+To start the calculator just type in the english sentence you want to translate. If you are lucky you maybe get a translation. \n\n")
 
 (define (httpPost str_input)
   (bytes->string/utf-8 (call/output-request
