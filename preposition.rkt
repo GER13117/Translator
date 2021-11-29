@@ -1,18 +1,5 @@
 #lang racket
 
-(require db)
-(require "login.rkt")
-(provide isPrepositon)
-(provide getPreposition)
-(provide getNext)
-
-;TODO: Wenn für Nomen gesucht wird auch Pronomen beachten
-(define (getNext wordType startPos wordTypeList input)
-  (cond
-    [(not (boolean? (index-of (drop wordTypeList (+ 1 startPos)) wordType)))
-     (list-ref input (+ startPos 1 (index-of (drop wordTypeList (+ 1 startPos)) wordType)))]
-    [else #f]))
-
 
 ; FUNKTIONIERT EXTREM BESCHISSEN: Die Implementierung von Pronomen lief nicht gut: pronomen müssen gesondert behandelt werden --> "person" als usecase in die Datenbank einplfegen --> Case zur Bildung von prepositionen für "person"
 
@@ -22,6 +9,12 @@
 
 ;TODO:
 ;- Namen (unbekannte Worte) sollen als Person behandelt werden --> WIE  AUCH IMMER
+
+(require db)
+(require "login.rkt")
+(require "helper_funcs.rkt")
+(provide isPrepositon)
+(provide getPreposition)
 
 
 (define (isPrepositon ele)
@@ -35,13 +28,13 @@
   (define nextPronoun #f)                                    ;Das auch nicht
   (define ger_preposition #f)                               ;Das auch absolut nicht
   (cond
-    [(string? (getNext "noun" pos))(
+    [(string? (getNext "noun" pos wordTypeList input))(
                                     (lambda ()
-                                      (set! nextNoun (getNext "noun" pos))
+                                      (set! nextNoun (getNext "noun" pos wordTypeList input))
                                       (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))))]
-    [(string? (getNext "pronoun" pos))(
+    [(string? (getNext "pronoun" pos wordTypeList input))(
                                        (lambda ()
-                                         (set! nextPronoun (getNext "pronoun" pos))
+                                         (set! nextPronoun (getNext "pronoun" pos wordTypeList input))
                                          (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))))])      ;TODO: smallplace durch person
 
 
@@ -66,25 +59,22 @@
                                           ;Genitiv
                                           [(string-ci=? (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE ger_prep='" ger_preposition "'")) "dativ")
                                            (cond
-                                             [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM"nextObjectQuery)))"n"]
+                                             [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM" nextObjectQuery)))"n"]
                                              [else
                                               (cond
                                                 [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"]
-                                                [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM"nextObjectQuery)))"r"]
+                                                [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"r"]
                                                 [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))"m"])])]
                                           ;Akkusativ
                                           ))]
         [else (string-append ger_preposition (cond
                                                [(string-ci=? "bigplace" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery)))""] ;Länder haben keinen Artikel
-                                               [else (cond                                                                                                              ;TODO: Condition für smallplace anstatt von else: Es ist nicht small place wenn nicht bigplace
+                                               [(string-ci=? "smallplace" (query-value mdbc (string-append "SELECT sense FROM" nextObjectQuery))) (cond                                                                                                              ;TODO: Condition für smallplace anstatt von else: Es ist nicht small place wenn nicht bigplace
                                                        [(string-ci=? "plural" (query-value mdbc (string-append "SELECT numerus FROM"nextObjectQuery)))" den"]
                                                        [else
                                                         (cond
                                                           [(string-ci=? "male" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"]
                                                           [(string-ci=? "female" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" der"]
                                                           [(string-ci=? "neutral" (query-value mdbc (string-append "SELECT gender FROM" nextObjectQuery)))" dem"])])]))])]
-    [else ger_preposition]));TODO: Funktion auch für Pronomen verwendbar machen:
-                                  ;Findung von ger_preposition: nextNoun und proNoun
-;                                                               --> condition um gucken welche Positon kleiner ist
-;                                                               --> festlegen von nextObject (als Ersatz für nextNoun) und ger_preposition
+    [else ger_preposition]))
 

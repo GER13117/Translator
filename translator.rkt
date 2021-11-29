@@ -3,6 +3,7 @@
 (require "login.rkt")
 (require "preposition.rkt")
 (require "adjectives.rkt")
+(require "helper_funcs.rkt")
 ;Autoren: Okke und manchmal Johann
 
 
@@ -39,12 +40,6 @@
 
 
 ;|========================================|Grammarbased|=============================================|
-(define (index-of lst ele) ;in alten (Schul-)Versionen nicht in base
-  (let loop ((lst lst)
-             (idx 0))
-    (cond ((empty? lst) #f)
-          ((equal? (first lst) ele) idx)
-          (else (loop (rest lst) (add1 idx))))))
 
 
 (define input '()) ;Global list storing the input
