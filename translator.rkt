@@ -152,7 +152,7 @@
        [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
-       [(isAdjective (list-ref input pos))(sentenceLoop input  (cons getAdjective translation)(+ 1 pos))]
+       [(isAdjective (list-ref input pos))(sentenceLoop input  (cons (getAdjective (list-ref input pos) pos wordTypeList input )translation)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
        [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
