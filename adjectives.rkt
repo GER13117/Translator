@@ -3,7 +3,7 @@
 (require db)
 (require "login.rkt")
 (require "helper_funcs.rkt")
-(require "pronoun+.rkt")
+(require "pronouns.rkt")
 
 (provide getAdjective)
 (provide isAdjective)
