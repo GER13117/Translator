@@ -7,5 +7,5 @@
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_num FROM numerals WHERE eng_num=" "'" ele "'"))#t]
     [else #f]))
-(define (getNumeral num pos wordTypeList input)
+(define (getNumeral num)
   (query-value mdbc (string-append "SELECT ger_num FROM numerals WHERE eng_num=" "'" num "'")))

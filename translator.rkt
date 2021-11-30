@@ -6,6 +6,7 @@
 (require "article.rkt")
 (require "helper_funcs.rkt")
 (require "numerals.rkt")
+(require "interjections.rkt")
 ;Autoren: Okke und manchmal Johann
 
 
@@ -68,6 +69,7 @@
        [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(getWordTypeList input (cons "preposition" typeList)(+ 1 pos))]
        [(isNumeral (list-ref input pos))(getWordTypeList input (cons "numeral" typeList)(+ 1 pos))]
+       [(isInterjection (list-ref input pos))(getWordTypeList input (cons "interjection" typeList)(+ 1 pos))]
        [else (getWordTypeList input (cons "name" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
     [else (reverse typeList)]))
 
@@ -158,7 +160,8 @@
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
        [(isAdjective (list-ref input pos))(sentenceLoop input  (cons (getAdjective (list-ref input pos) pos wordTypeList input )translation)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
-       [(isNumeral (list-ref input pos))(sentenceLoop input (cons (getNumeral (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
+       [(isNumeral (list-ref input pos))(sentenceLoop input (cons (getNumeral (list-ref input pos)) translation)(+ 1 pos))]
+       [(isInterjection (list-ref input pos))(sentenceLoop input (cons (getInterjection (list-ref input pos)) translation)(+ 1 pos))]
        [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 

@@ -31,8 +31,10 @@
      (cond
        [(member "preposition" (take wordTypeList pos))
         (cond
-          [(or (regexp-match? #rx"(''s)|(s'')$" noun)(member  "of" (take input pos))) "genitiv"] ;TODO: wenn of davor
+          [(or (regexp-match? #rx"(''s)|(s'')$" noun)(member  "of" (take input pos))) "genitiv"]
           [(string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"dativ"]
           [(string-ci=? "akkusativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"akkusativ"]
-          )])]
+          [else "genitiv"]
+          )]
+       [else "genitiv"])]
     [else "nominativ"]))
