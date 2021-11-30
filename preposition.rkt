@@ -74,23 +74,9 @@
   
   (cond
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
-      (cond
-        [(and (regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)  (not (string-ci=? (getCase nextObject pos wordTypeList input) "nominativ")))
-         (string-append ger_preposition
-                       (cond
-                         [(string-ci=? "smallplace" (senseQuery))
-                          (cond
-                            [(string-ci=? "plural" (numerusQuery))"n"]
-                            [else
-                             (cond
-                               [(string-ci=? "male" (genderQuery))"m"]
-                               [(string-ci=? "female" (genderQuery))"r"]
-                               [(string-ci=? "neutral" (genderQuery))"m"])])]
-                         [(string-ci=? "person" (senseQuery))""]
-                         ))]
-        [else (string-append ger_preposition
+        (string-append ger_preposition
                             (cond
-                              [(string-ci=? "bigplace" (senseQuery))""] ;Länder haben keinen Artikel
+                              [(or (string-ci=? "bigplace" (senseQuery))(string-ci=? "person" (senseQuery)))""] ;Länder haben keinen Artikel
                               [(string-ci=? "smallplace" (senseQuery))
                                (cond
                                  [(string-ci=? "plural" (numerusQuery))" den"]
@@ -99,6 +85,6 @@
                                     [(string-ci=? "male" (genderQuery))" dem"]
                                     [(string-ci=? "female" (genderQuery))" der"]
                                     [(string-ci=? "neutral" (genderQuery))" dem"])])]
-                              ))])]
+                              ))]
     [else ger_preposition]))
 

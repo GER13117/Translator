@@ -5,6 +5,7 @@
 (require "adjectives.rkt")
 (require "article.rkt")
 (require "helper_funcs.rkt")
+(require "numerals.rkt")
 ;Autoren: Okke und manchmal Johann
 
 
@@ -66,11 +67,12 @@
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
        [(isAdjective (list-ref input pos))(getWordTypeList input (cons "adjective" typeList)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(getWordTypeList input (cons "preposition" typeList)(+ 1 pos))]
+       [(isNumeral (list-ref input pos))(getWordTypeList input (cons "numeral" typeList)(+ 1 pos))]
        [else (getWordTypeList input (cons "name" typeList) (+ 1 pos))])] ;Das führt zu dem Problem, dass unbekannte Adjektive zu fehlern führen
     [else (reverse typeList)]))
 
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
-  ;sonst --> Obejekt
+;sonst --> Obejekt
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
@@ -121,11 +123,11 @@
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
 
 (define (getVerbHelper person verb)
-     (cond
-       [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
-       [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
-       [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
+  (cond
+    [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
+    [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
+    [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
+    [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
 (define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front --> implentieren von getNext-Funtktion (Anstatt von subj die position des Verbs übergeben)
@@ -156,6 +158,7 @@
        [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
        [(isAdjective (list-ref input pos))(sentenceLoop input  (cons (getAdjective (list-ref input pos) pos wordTypeList input )translation)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
+       [(isNumeral (list-ref input pos))(sentenceLoop input (cons (getNumeral (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
        [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
@@ -168,32 +171,32 @@
 
 (define (http-response content)  
   (response/full
-    200                  ; HTTP response code.
-    #"OK"                ; HTTP response message.
-    (current-seconds)    ; Timestamp.
-    TEXT/HTML-MIME-TYPE  ; MIME type for content.
-    '()                  ; Additional HTTP headers.
-    (list                ; Content (in bytes) to send to the client.
-     (string->bytes/utf-8 content))))
+   200                  ; HTTP response code.
+   #"OK"                ; HTTP response message.
+   (current-seconds)    ; Timestamp.
+   TEXT/HTML-MIME-TYPE  ; MIME type for content.
+   '()                  ; Additional HTTP headers.
+   (list                ; Content (in bytes) to send to the client.
+    (string->bytes/utf-8 content))))
 
 
 ;; URL routing table (URL dispatcher).
 (define-values (dispatch generate-url)
   (dispatch-rules
-    [("translate") #:method "post" translate]
-    [else (error "There is no procedure to handle the url.")]))
+   [("translate") #:method "post" translate]
+   [else (error "There is no procedure to handle the url.")]))
 
 (define (request-handler request)
   (dispatch request))
 
 ;; Start the server.
 (serve/servlet
-  request-handler
-  #:launch-browser? #f
-  #:quit? #f
-  #:listen-ip "127.0.0.1"
-  #:port 8001
-  #:servlet-regexp #rx"")
+ request-handler
+ #:launch-browser? #f
+ #:quit? #f
+ #:listen-ip "127.0.0.1"
+ #:port 8001
+ #:servlet-regexp #rx"")
 
 
 ;|===========================================|Tests|=================================================|
