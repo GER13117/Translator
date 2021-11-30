@@ -27,10 +27,16 @@
 
 
 (define (wordByWordSQL lst)
-  (for-each (lambda (ele)
-              (cond
-                [(checkForCorrectReturn ele) (display (string-append(wordToWordQuery ele) " "))]
-                [else (display (string-append (symbol->string ele) " "))])) lst))
+  (for-each
+   (lambda (ele)
+     (cond
+       [(checkForCorrectReturn ele) (display (string-append(wordToWordQuery ele) " "))]
+       [else (display (string-append (symbol->string ele) " "))]
+       )
+     )
+   lst
+   )
+  )
 
 ;(transSQL (read (open-input-string (string-append "(" (read-line) ")"))))
 
@@ -49,7 +55,8 @@
   (define str "Oops")
   (cond
     [(eq? 1 (length input))(set! str "TEST")]
-    [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))])
+    [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))]
+    )
   (displayln (string-append "OUTPUT: " str))     ;REMOVE WHEN WORKING
   (http-response str))
 
@@ -68,7 +75,7 @@
     [else (reverse typeList)]))
 
 ;wenn im Satzteil vor dem gegbenen (Pro)Nomen ein Verb vorhanden ist --> Nominativ (Subjekt)
-  ;sonst --> Obejekt
+;sonst --> Obejekt
 
 ;|------------------------------------------<|Nouns|>------------------------------------------------|
 (define (isNoun ele)
@@ -119,11 +126,11 @@
     [else 'erSieEs]))                                                          ;TODO: Gibt es andere Pronomen die als hinweis genutzt werden können
 
 (define (getVerbHelper person verb)
-     (cond
-       [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
-       [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
-       [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
-       [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
+  (cond
+    [(eq? person 'ich)(string-append (regVerbQuery verb) "e")]
+    [(eq? person 'erSieEs)(string-append (regVerbQuery verb) "t")]
+    [(eq? person 'wirSie)(string-append (regVerbQuery verb) "en")]
+    [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
 (define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front --> implentieren von getNext-Funtktion (Anstatt von subj die position des Verbs übergeben)
@@ -166,32 +173,32 @@
 
 (define (http-response content)  
   (response/full
-    200                  ; HTTP response code.
-    #"OK"                ; HTTP response message.
-    (current-seconds)    ; Timestamp.
-    TEXT/HTML-MIME-TYPE  ; MIME type for content.
-    '()                  ; Additional HTTP headers.
-    (list                ; Content (in bytes) to send to the client.
-     (string->bytes/utf-8 content))))
+   200                  ; HTTP response code.
+   #"OK"                ; HTTP response message.
+   (current-seconds)    ; Timestamp.
+   TEXT/HTML-MIME-TYPE  ; MIME type for content.
+   '()                  ; Additional HTTP headers.
+   (list                ; Content (in bytes) to send to the client.
+    (string->bytes/utf-8 content))))
 
 
 ;; URL routing table (URL dispatcher).
 (define-values (dispatch generate-url)
   (dispatch-rules
-    [("translate") #:method "post" translate]
-    [else (error "There is no procedure to handle the url.")]))
+   [("translate") #:method "post" translate]
+   [else (error "There is no procedure to handle the url.")]))
 
 (define (request-handler request)
   (dispatch request))
 
 ;; Start the server.
 (serve/servlet
-  request-handler
-  #:launch-browser? #f
-  #:quit? #f
-  #:listen-ip "127.0.0.1"
-  #:port 8001
-  #:servlet-regexp #rx"")
+ request-handler
+ #:launch-browser? #f
+ #:quit? #f
+ #:listen-ip "127.0.0.1"
+ #:port 8001
+ #:servlet-regexp #rx"")
 
 
 ;|===========================================|Tests|=================================================|
