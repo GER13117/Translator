@@ -41,6 +41,8 @@
 (define wordTypeList '()) ;Global list storing the wordtypes
 
 
+
+;TODO: REGEX remove \r wenn vorhanden --> tritt bei windows konsole auf
 (define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
   (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                 ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
@@ -50,7 +52,7 @@
   (cond
     [(eq? 1 (length input))(set! str "TEST")]
     [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))])
-  (displayln (string-append "OUTPUT: " str))     ;REMOVE WHEN WORKING
+  (displayln (string-append "OUTPUT: " str))
   (http-response str))
 
 ;TODO: Alle Wortarten / Wörter aus Tabellen müssen verwendet werden können --> schreiben von Get uns Is für die restlichen wortarten

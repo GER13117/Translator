@@ -27,6 +27,7 @@
     [(> index 0) (splitListAtPos (- index 1) (rest lst) (cons (first lst) res_lst ))]
         [else (reverse res_lst) ]))
 
+;TODO: Make this work properly
 (define (getCase noun pos wordTypeList input)
   (cond
    [(member 'verb (splitListAtPos pos wordTypeList ))

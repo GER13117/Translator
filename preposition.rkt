@@ -18,21 +18,25 @@
 (define (getPreposition preposition pos wordTypeList input)
   (define nextNoun #f)                                         ;Das ist nicht schön
   (define nextPronoun #f)                                    ;Das auch nicht
+  (define nextObject #f)
   (define ger_preposition #f)                               ;Das auch absolut nicht
   (define nextName #f)
   (cond
     [(string? (getNext "noun" pos wordTypeList input))(
                                     (lambda ()
                                       (set! nextNoun (getNext "noun" pos wordTypeList input))
+                                      (set! nextObject nextNoun)
                                       (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions join nouns on prepositions.usecase = nouns.sense WHERE eng_prep='" preposition "' AND eng_noun ='" nextNoun "'")))))]
     [(string? (getNext "pronoun" pos wordTypeList input))(
                                        (lambda ()
                                          (set! nextPronoun (getNext "pronoun" pos wordTypeList input))
-                                         (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))))] ;TODO: smallplace durch person
+                                         (set! nextObject nextPronoun)
+                                         (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='person'")))))]
     [else (
            (lambda ()
              (set! nextName (getNext "name" pos wordTypeList input))
-             (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='""smallplace" "'")))))])  ;TODO: smallplace durch person
+             (set! nextObject nextName)
+             (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='person'")))))]) 
 
 
   (define nextObjectQuery
@@ -71,7 +75,7 @@
   (cond
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
       (cond
-        [(regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)
+        [(and (regexp-match? #rx"^[a-z](.*[aeiou])?$" ger_preposition)  (not (string-ci=? (getCase nextObject pos wordTypeList input) "nominativ")))
          (string-append ger_preposition
                        (cond
                          [(string-ci=? "smallplace" (senseQuery))
