@@ -10,7 +10,7 @@
 
 (define (isArticle ele) ;TODO: He walks the way --> Er geht den Weg (NICHT Er geht der Weg)
   (cond
-    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
+    [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male' LIMIT 1"))#t]
     [else #f]))
 
 ;TODO: Was tun wenn Nomen unbekannt
@@ -21,6 +21,8 @@
     [(string-ci=? "dativ" (getCase (getNext "noun" pos wordTypeList input) (+ 1 pos) wordTypeList input))
                   (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos wordTypeList input) "'AND eng_article='" article "'AND `case`='dativ'"))]
     [(string-ci=? "akkusativ" (getCase (getNext "noun" pos wordTypeList input) (+ 1 pos) wordTypeList input))
-                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos wordTypeList input) "'AND eng_article='" article "'AND `case`='nominativ'"))]
+                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos wordTypeList input) "'AND eng_article='" article "'AND `case`='akkusativ'"))]
+    [(string-ci=? "genitiv" (getCase (getNext "noun" pos wordTypeList input) (+ 1 pos) wordTypeList input))
+                  (query-value mdbc (string-append "SELECT ger_article FROM articles join nouns on articles.gender = nouns.gender WHERE eng_noun='" (getNext "noun" pos wordTypeList input) "'AND eng_article='" article "'AND `case`='genitiv'"))]
     ;Cases für Akkusativ, Genitiv
     ))

@@ -27,11 +27,12 @@
 ;TODO: Make this work properly
 (define (getCase noun pos wordTypeList input)
   (cond
+     [(or (regexp-match? #rx"(''s)|(s'')$" noun)(list? (member  "of" (take input pos)))) "genitiv"]
     [(member "verb" (take wordTypeList pos))
      (cond
        [(member "preposition" (take wordTypeList pos))
         (cond
-          [(or (regexp-match? #rx"(''s)|(s'')$" noun)(member  "of" (take input pos))) "genitiv"]
+          [(or (regexp-match? #rx"(''s)|(s'')$" noun)(string? (member  "of" (take input pos)))) "genitiv"]
           [(string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"dativ"]
           [(string-ci=? "akkusativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"akkusativ"]
           [else "genitiv"]
