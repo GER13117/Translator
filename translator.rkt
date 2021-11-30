@@ -14,10 +14,6 @@
 ;TODO: .!? am Ende von Sätzen
 ;TODO: Usefull error messages for the users: The word which has problem, (the problem)
 
-;TODO: Verben als Auslöser für Dativ
-
-;TODO: Liste an Punkten teilen --> sublisten übersetzen und ergebnis dann zusammen fügen
-
 ;==========================================|WordToWord|==============================================| ;UNUSED RIGHT NOW
 (define (checkForCorrectReturn ele)
   (query-maybe-value mdbc (string-append "SELECT german FROM wordtoword WHERE english=" "'" (symbol->string ele) "'")))
@@ -46,20 +42,21 @@
 (define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
   (set! input (map(lambda (e)(string-split e " "))
-                  (map string-trim(string-split (regexp-replace #rx"[\n\r]"(regexp-replace #rx"'" (bytes->string/utf-8 data) "''")"") #px"[\\.!?]+"))))
+                  (map string-trim(string-split (regexp-replace #rx"[\n\r]"(regexp-replace #rx"'" (bytes->string/utf-8 data) "°")"") #px"[\\.!?]+"))))
   
   (displayln (string-append "INPUT: " (bytes->string/utf-8 data)))
   
   (set! wordTypeList (map (lambda (e)
                             (getWordTypeList e)) input))
-
-  (displayln wordTypeList)
   
   (define str "Oops")
   (cond
-    [(and (eq? 1 (length input))(not (list? input)))(set! str "TEST")]
-    [else (set! str (regexp-replace #rx"''" (string-join (flatten (map (lambda (inputPart wordTypeListPart)
-                                                                         (sentenceLoop inputPart wordTypeListPart)) input wordTypeList)) " ")"'"))])
+    [(and (eq? 1 (length input)) (eq? (length (car input)) 1))(set! str "TEST")]
+    ;[(and (eq? 1 (length input))(not (list? input)))(set! str "TEST")]
+    [else (set! str (regexp-replace #rx"°"
+                                   (string-join (flatten (map
+                                                          (lambda (inputPart wordTypeListPart)
+                                                            (sentenceLoop inputPart wordTypeListPart)) input wordTypeList)) " ")"'"))])
   
   (displayln (string-append "OUTPUT: " str))
   (http-response str))
@@ -87,8 +84,8 @@
 (define (isNoun ele)
   (cond
     [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" ele "'"))]
-    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "''s" #:left? #f) "'"))] ;TODO: Für genitiv nutzen
-    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s''" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "°s" #:left? #f) "'"))]
+    [(query-maybe-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun='" (string-trim ele "s°" #:left? #f) "'"))]
     [else #f]))
 (define (getNoun noun)
   (query-value mdbc (string-append "SELECT ger_noun FROM nouns WHERE eng_noun=" "'" noun "'")))
@@ -158,10 +155,10 @@
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getArticle (list-ref input pos) pos wordTypeListPart input) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
+       [(isArticle (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getArticle (list-ref input pos) pos wordTypeListPart input) translation) (+ 1 pos))]
        [(isNoun (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(string? (isVerb (list-ref input pos)))(sentenceLoop input wordTypeListPart  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(sentenceLoop input wordTypeListPart  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))] ;ACHTUNG: Könnte vielleicht zu Fehlern führen
        [(isAdjective (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getAdjective (list-ref input pos) pos wordTypeListPart input )translation)(+ 1 pos))]
        [(isPrepositon (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getPreposition (list-ref input pos) pos wordTypeListPart input) translation)(+ 1 pos))]
        [(isNumeral (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getNumeral (list-ref input pos)) translation)(+ 1 pos))]
