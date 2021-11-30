@@ -2,6 +2,7 @@
 *.rkt~
 *.rkt~~
 *.rkt#2#
+*.rkt#
 *.1
 *.exe
 /.idea
