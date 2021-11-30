@@ -13,7 +13,7 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_article FROM articles WHERE eng_article=" "'" ele "'" "AND gender='male'"))#t]
     [else #f]))
 
-;TODO: Bedingungen für alle Fälle (logik von getPreposition übernehmen --> 
+;TODO: Was tun wenn Nomen unbekannt
 (define (getArticle article pos wordTypeList input)
   (cond
     [(string-ci=? "nominativ" (getCase (getNext "noun" pos wordTypeList input) (+ 1 pos) wordTypeList input))

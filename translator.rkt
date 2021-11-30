@@ -41,16 +41,23 @@
 
 
 
-;TODO: REGEX remove \r wenn vorhanden --> tritt bei windows konsole auf
+;TODO: REGEX: 'nt --> not, 're --> are, ('s --> is)
 (define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
-  (set! input (string-split (regexp-replace #rx"'" (bytes->string/utf-8 data) "''")" "))                 ;?????REGEX: 'nt --> not, 're --> are, ('s --> is)
+  (set! input (map(lambda (e)(string-split e " "))
+                  (map string-trim(string-split (regexp-replace #rx"[\n\r]"(regexp-replace #rx"'" (bytes->string/utf-8 data) "''")"") #px"[\\.!?]+"))))
+  
   (displayln (string-append "INPUT: " (bytes->string/utf-8 data)))
-  (set! wordTypeList (getWordTypeList input))
+  
+  (set! wordTypeList (map (lambda (e)
+                            (getWordTypeList e)) input))
+  
   (define str "Oops")
   (cond
-    [(eq? 1 (length input))(set! str "TEST")]
-    [else (set! str (regexp-replace #rx"''" (string-join (sentenceLoop input) " ")"'"))])
+    [(and (eq? 1 (length input))(not (list? input)))(set! str "TEST")]
+    [else (set! str (regexp-replace #rx"''" (string-join (flatten (map (lambda (inputPart wordTypeListPart)
+                                                                         (sentenceLoop inputPart wordTypeListPart)) input wordTypeList)) " ")"'"))])
+  
   (displayln (string-append "OUTPUT: " str))
   (http-response str))
 
@@ -136,9 +143,6 @@
     [(eq? form "iVerb")(iregVerbQuery verb)]
     [else (getVerbHelper (getPerson subj) verb)]))
 
-
-
-
 ;|-----------------------------------------<|Unsorted|>----------------------------------------------|
 (define (checkForQuestion ele)
   (cond
@@ -147,25 +151,22 @@
     [else #f]))
 
 ;|------------------------------------<|Translation Interator|>--------------------------------------|
-(define (sentenceLoop input(translation '()) (pos 0))
+(define (sentenceLoop input wordTypeListPart (translation '()) (pos 0))
   (cond
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(sentenceLoop input (cons (getArticle (list-ref input pos) pos wordTypeList input) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
-       [(isNoun (list-ref input pos))(sentenceLoop input  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(isPronoun (list-ref input pos))(sentenceLoop input  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
-       [(string? (isVerb (list-ref input pos)))(sentenceLoop input  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
-       [(isAdjective (list-ref input pos))(sentenceLoop input  (cons (getAdjective (list-ref input pos) pos wordTypeList input )translation)(+ 1 pos))]
-       [(isPrepositon (list-ref input pos))(sentenceLoop input (cons (getPreposition (list-ref input pos) pos wordTypeList input) translation)(+ 1 pos))]
-       [(isNumeral (list-ref input pos))(sentenceLoop input (cons (getNumeral (list-ref input pos)) translation)(+ 1 pos))]
-       [(isInterjection (list-ref input pos))(sentenceLoop input (cons (getInterjection (list-ref input pos)) translation)(+ 1 pos))]
-       [else (sentenceLoop input  (cons (list-ref input pos) translation) (+ 1 pos))])]
+       [(isArticle (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getArticle (list-ref input pos) pos wordTypeListPart input) translation) (+ 1 pos))] ;TODO: Position des Artikels übergeben --> zur dynamischen Erkennung von Nomen durch getNext
+       [(isNoun (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getNoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(isPronoun (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getPronoun (list-ref input pos)) translation)(+ 1 pos))]
+       [(string? (isVerb (list-ref input pos)))(sentenceLoop input wordTypeListPart  (cons (getVerb (list-ref input (- pos 1)) (list-ref input pos) (isVerb (list-ref input pos))) translation)(+ 1 pos))]
+       [(isAdjective (list-ref input pos))(sentenceLoop input wordTypeListPart  (cons (getAdjective (list-ref input pos) pos wordTypeListPart input )translation)(+ 1 pos))]
+       [(isPrepositon (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getPreposition (list-ref input pos) pos wordTypeListPart input) translation)(+ 1 pos))]
+       [(isNumeral (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getNumeral (list-ref input pos)) translation)(+ 1 pos))]
+       [(isInterjection (list-ref input pos))(sentenceLoop input wordTypeListPart (cons (getInterjection (list-ref input pos)) translation)(+ 1 pos))]
+       [else (sentenceLoop input wordTypeListPart  (cons (list-ref input pos) translation) (+ 1 pos))])]
     [else (reverse translation)]))
 
-
 ;|============================================|Server|================================================|
-
-
 (require web-server/servlet) 
 (require web-server/servlet-env)
 
@@ -197,16 +198,3 @@
  #:listen-ip "127.0.0.1" ;#f wenn man von Geräten außerhalb
  #:port 8001
  #:servlet-regexp #rx"")
-
-
-;|===========================================|Tests|=================================================|
-
-(define (verbTest verb)
-  (define pronouns '(I you he she it we you they))
-  (for-each (lambda (ele)
-              (displayln (getVerb ele verb))) pronouns))
-;(verbTest 'jump)
-
-
-
-

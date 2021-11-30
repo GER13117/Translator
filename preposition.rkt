@@ -14,7 +14,6 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep=" "'" ele "'LIMIT 1"))#t]
     [else #f]))
 
-;TODO: Genitiv und Akkusativ hinzufügen
 (define (getPreposition preposition pos wordTypeList input)
   (define nextNoun #f)                                         ;Das ist nicht schön
   (define nextPronoun #f)                                    ;Das auch nicht
@@ -36,8 +35,7 @@
            (lambda ()
              (set! nextName (getNext "name" pos wordTypeList input))
              (set! nextObject nextName)
-             (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='person'")))))]) 
-
+             (set! ger_preposition (query-value mdbc (string-append "SELECT ger_prep FROM prepositions WHERE eng_prep='" preposition "' AND usecase ='person'")))))])
 
   (define nextObjectQuery
     (cond
