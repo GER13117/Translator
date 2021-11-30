@@ -7,6 +7,7 @@
 (require "helper_funcs.rkt")
 (require "numerals.rkt")
 (require "interjections.rkt")
+(require "pronoun+.rkt")
 ;Autoren: Okke und manchmal Johann
 
 
