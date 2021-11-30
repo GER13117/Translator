@@ -74,8 +74,8 @@
     [(not (string-ci=? "article" (list-ref wordTypeList (+ 1 pos))))
         (string-append ger_preposition
                             (cond
-                              [(or (string-ci=? "bigplace" (senseQuery))(string-ci=? "person" (senseQuery)))""] ;Länder haben keinen Artikel
-                              [(string-ci=? "smallplace" (senseQuery))
+                              [(or (string-ci=? "bigplace" (senseQuery))(string-ci=? "time" (senseQuery))(string-ci=? "person" (senseQuery)))""] ;Länder haben keinen Artikel
+                              [(or (string-ci=? "object" (senseQuery))(string-ci=? "smallplace" (senseQuery)))
                                (cond
                                  [(string-ci=? "plural" (numerusQuery))" den"]
                                  [else

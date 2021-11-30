@@ -33,11 +33,32 @@
        [(weakDeclination pos input) (string-append (AdjectiveQuery adjective) "en")]   ;schwache Deklination (der,die,das)
        [else                                                                           ;starke Deklination
         (cond
-          [(eq? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]
-          [else "sonenschwachsinn"]
-          )
+          [(eq? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")];stark + plural
+          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "er")]
+          [else (string-append (AdjectiveQuery adjective) "em")]
+          ) 
         ]
        )
+     ]
+    [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "nominativ") ;Nominativ
+     (cond
+       [(weakDeclination pos input) ;schwache Deklination -> plural(en)/singular(e) || starke Deklination -> plural (e)/ singluar (F:e; M:er; N:es)
+        (display "bistNominativ")
+        (cond
+          [(eq?(query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "singular") (string-append (AdjectiveQuery adjective) "e")]
+          [(eq?(query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]
+          )
+        ]
+       [else
+        (display "und jetzt falsch")
+        (cond
+          [(eq? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "e")]
+          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "e")]
+          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "er")]
+          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "neutral") (string-append (AdjectiveQuery adjective) "es")]
+       )
+     ]
+    )
      ]
     )
   )

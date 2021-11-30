@@ -52,6 +52,8 @@
   
   (set! wordTypeList (map (lambda (e)
                             (getWordTypeList e)) input))
+
+  (displayln wordTypeList)
   
   (define str "Oops")
   (cond
