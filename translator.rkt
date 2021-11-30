@@ -10,15 +10,12 @@
 ;Autoren: Okke und manchmal Johann
 
 
-;TODO: Funktion um regelmäßige Verben in Datenbank zu schreiben Link regelmäßige deutsche verben: https://de.wiktionary.org/wiki/Verzeichnis:Deutsch/Regelm%C3%A4%C3%9Fige_Verben
 ;TODO: .!? am Ende von Sätzen
-;TODO: How to store the results
 ;TODO: Usefull error messages for the users: The word which has problem, (the problem)
 
-;TODO: Handlen von Namen / unbekannten Wörtern in Bezug auf Bilden von Artikeln, Präpositionen, Adjektiven etc.
-
 ;TODO: Verben als Auslöser für Dativ
-;(require "login.rkt")
+
+;TODO: Liste an Punkten teilen --> sublisten übersetzen und ergebnis dann zusammen fügen
 
 ;==========================================|WordToWord|==============================================| ;UNUSED RIGHT NOW
 (define (checkForCorrectReturn ele)
@@ -197,7 +194,7 @@
  request-handler
  #:launch-browser? #f
  #:quit? #f
- #:listen-ip "127.0.0.1"
+ #:listen-ip "127.0.0.1" ;#f wenn man von Geräten außerhalb
  #:port 8001
  #:servlet-regexp #rx"")
 
