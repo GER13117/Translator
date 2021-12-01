@@ -10,9 +10,7 @@
 (require "pronouns.rkt")
 ;Autoren: Okke und manchmal Johann
 
-
-;TODO: .!? am Ende von Sätzen
-;TODO: Usefull error messages for the users: The word which has problem, (the problem)
+;MAINMODULE
 
 ;==========================================|WordToWord|==============================================| ;UNUSED RIGHT NOW
 (define (checkForCorrectReturn ele)
@@ -37,8 +35,6 @@
 (define wordTypeList '()) ;Global list storing the wordtypes
 
 
-
-;TODO: REGEX: 'nt --> not, 're --> are, ('s --> is)
 (define (translate request) ;main function: uses different web-handlers to receive and send data
   (define data (request-post-data/raw request))
   (set! input (map(lambda (e)(string-split e " "))
@@ -51,8 +47,7 @@
   
   (define str "Oops")
   (cond
-    [(and (eq? 1 (length input)) (eq? (length (car input)) 1))(set! str "TEST")]
-    ;[(and (eq? 1 (length input))(not (list? input)))(set! str "TEST")]
+    [(and (eq? 1 (length input)) (eq? (length (car input)) 1))(set! str (transSQL (car input)))] ;TODO: testen
     [else (set! str (regexp-replace #rx"°"
                                    (string-join (flatten (map
                                                           (lambda (inputPart wordTypeListPart)
@@ -61,12 +56,12 @@
   (displayln (string-append "OUTPUT: " str))
   (http-response str))
 
-;TODO: Alle Wortarten / Wörter aus Tabellen müssen verwendet werden können --> schreiben von Get uns Is für die restlichen wortarten
+
 (define (getWordTypeList input (typeList '()) (pos 0)) ;gets the wordtype of the inputed words by using the "is" functions of the different wordTypes.
   (cond                                                ;returns a list
     [(< pos (length input))
      (cond
-       [(isArticle (list-ref input pos))(getWordTypeList input (cons "article" typeList) (+ 1 pos))] ;TODO: What todo if article is recognized but no noun (ALLGEMEIN: Catchen von Fehlern)
+       [(isArticle (list-ref input pos))(getWordTypeList input (cons "article" typeList) (+ 1 pos))]
        [(isNoun (list-ref input pos))(getWordTypeList input (cons "noun" typeList)(+ 1 pos))]
        [(isPronoun (list-ref input pos))(getWordTypeList input(cons "pronoun" typeList)(+ 1 pos))]
        [(string? (isVerb (list-ref input pos)))(getWordTypeList input (cons "verb" typeList) (+ 1 pos))]
@@ -136,7 +131,7 @@
     [(eq? person 'du)(string-append (regVerbQuery verb) "st")]))
 
 
-(define (getVerb subj verb form) ;TODO: Make dynamically if Adjective infront or noun in front --> implentieren von getNext-Funtktion (Anstatt von subj die position des Verbs übergeben)
+(define (getVerb subj verb form)
   (cond
     [(eq? form "rVerbES")(getVerbHelper (getPerson subj) (string-trim verb "es" #:left? #f))]
     [(eq? form "rVerbS")(getVerbHelper (getPerson subj) (string-trim verb "s" #:left? #f))]
