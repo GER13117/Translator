@@ -12,7 +12,7 @@
 
 ;MAINMODULE
 
-;==========================================|WordToWord|==============================================| ;UNUSED RIGHT NOW
+;==========================================|WordToWord|==============================================|
 (define (checkForCorrectReturn ele)
   (query-maybe-value mdbc (string-append "SELECT german FROM wordtoword WHERE english=" "'" (symbol->string ele) "'")))
 
@@ -40,21 +40,21 @@
   (set! input (map(lambda (e)(string-split e " "))
                   (map string-trim(string-split (regexp-replace #rx"[\n\r]"(regexp-replace #rx"'" (bytes->string/utf-8 data) "°")"") #px"[\\.!?]+"))))
   
-  (displayln (string-append "INPUT: " (bytes->string/utf-8 data)))
+  (displayln (string-append "INPUT: " (bytes->string/utf-8 data))) ;For debugging: Showing what the Server received from the client
   
   (set! wordTypeList (map (lambda (e)
-                            (getWordTypeList e)) input))
+                            (getWordTypeList e)) input)) ;sets the wordTypeList storing the wordtypes
   
   (define str "Oops")
   (cond
-    [(and (eq? 1 (length input)) (eq? (length (car input)) 1))(set! str (transSQL (car input)))] ;TODO: testen
+    [(and (eq? 1 (length input)) (eq? (length (car input)) 1))(set! str (wordByWordSQL (car input)))] ;TODO: testen!!!!!!!!!!!!!!!!!!
     [else (set! str (regexp-replace #rx"°"
                                    (string-join (flatten (map
                                                           (lambda (inputPart wordTypeListPart)
-                                                            (sentenceLoop inputPart wordTypeListPart)) input wordTypeList)) " ")"'"))])
+                                                            (sentenceLoop inputPart wordTypeListPart)) input wordTypeList)) " ")"'"))]) ;Long function for translating the sentence. Different sentences are stored in seperate lists. The function loops through them and trabslates them seperatly. Flatten making the list 1D again. It gets converted to a string.
   
-  (displayln (string-append "OUTPUT: " str))
-  (http-response str))
+  (displayln (string-append "OUTPUT: " str)) ;for debugging: displays the output
+  (http-response str)) ;calls function to respond
 
 
 (define (getWordTypeList input (typeList '()) (pos 0)) ;gets the wordtype of the inputed words by using the "is" functions of the different wordTypes.
