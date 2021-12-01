@@ -14,16 +14,16 @@
 
 ;==========================================|WordToWord|==============================================|
 (define (checkForCorrectReturn ele)
-  (query-maybe-value mdbc (string-append "SELECT ger_word FROM wordtoword WHERE eng_word=" "'" ele "'")))
+  (query-maybe-value mdbc (string-append "SELECT ger_word FROM wordtoword WHERE eng_word=" "'" ele "'LIMIT 1")))
 
 (define (checkForGerCorrectReturn ele)
-  (query-maybe-value mdbc (string-append "SELECT eng_word FROM wordtoword WHERE ger_word=" "'" ele "'")))
+  (query-maybe-value mdbc (string-append "SELECT eng_word FROM wordtoword WHERE ger_word=" "'" ele "' LIMIT 1")))
 
 (define (wordToWordQuery engword)
-  (query-value mdbc (string-append "SELECT ger_word FROM wordtoword WHERE eng_word=" "'" engword "'")))
+  (query-value mdbc (string-append "SELECT ger_word FROM wordtoword WHERE eng_word=" "'" engword "'LIMIT 1")))
 
 (define (gerToEng gerword)
-  (query-value mdbc (string-append "SELECT eng_word FROM wordtoword WHERE ger_word=" "'" gerword "'")))
+  (query-value mdbc (string-append "SELECT eng_word FROM wordtoword WHERE ger_word=" "'" gerword "'LIMIT 1")))
 
 (define (singleWordQuery ele) ;function for querying a single-word-input
   (cond
