@@ -8,75 +8,92 @@
 (provide getAdjective)
 (provide isAdjective)
 
-;|----------------------------------------<|Adjectives|>---------------------------------------------|
-; Akkusativ und Dativ wenn Präposition davor: Teilweise über Präposition bestimmbar
-
-;Sorry Johann, dass ich bei dir rumgepfuscht habe. Du hattes klammer vergessen xoxo
-
-;TODO: Komplette Logik für Adjektive:
-;     - Fälle
-;     - Geschlecht
-;     - numerus
-;Genitiv: the ball of the small boy -> der Ball des kleinEN Jungen
 
 (define (AdjectiveQuery adjective_eng)
   (query-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" adjective_eng "'"))
   )
-;funktioniert wie regVerbQuery, muss ggf. auf die Tabellen angepasst werden
+;übersetzt das englische Wort nach Deutsch z.B. small ->klein
 
 (define (getAdjective adjective pos wordTypeList input)
-  (displayln "sdfsdfd")
+  (displayln "getAdjective getriggert")
   (cond
-    [(member "of" (take input pos)) (string-append (AdjectiveQuery adjective) "en")] ;wenn bis zu drei Wörter davor ein "of" steht -> Genitiv und "en" wird drangehängt
-    [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "dativ")    ;Dativ                                                                   ;Dativ
+    [(member "of" (take input pos)) (string-append (AdjectiveQuery adjective) "en")]                ;"of" vor dem Adjektiv als Auslöser für Genitiv
+    [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "dativ")    ;Dativ
      (cond
-       [(weakDeclination pos input) (string-append (AdjectiveQuery adjective) "en")]   ;schwache Deklination (der,die,das)
-       [else                                                                           ;starke Deklination
+       [(weakDeclination pos input) (string-append (AdjectiveQuery adjective) "en")]                ;schwache Deklination
+       [else                                                                                        ;starke Deklination
         (cond
-          [(eq? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")];stark + plural
-          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "er")]
-          [else (string-append (AdjectiveQuery adjective) "em")]
+          [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")];Nomen, auf das sich das Adjektiv bezieht, im Plural
+          [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "er")] ;Nomen ist weiblich
+          [else (string-append (AdjectiveQuery adjective) "em")]                                    ;Nomen ist neutral oder männlich
           ) 
         ]
        )
      ]
     [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "nominativ") ;Nominativ
      (cond
-       [(weakDeclination pos input) ;schwache Deklination -> plural(en)/singular(e) || starke Deklination -> plural (e)/ singluar (F:e; M:er; N:es)
+       [(weakDeclination pos input)                                                                  ;schwache Deklination
         (display "bistNominativ")
         (cond
-          [(eq?(query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "singular") (string-append (AdjectiveQuery adjective) "e")]
-          [(eq?(query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]
+          [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "singular") (string-append (AdjectiveQuery adjective) "e")] ;Nomen im Singular
+          [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]  ;Nomen im Plural
           )
         ]
-       [else
-        (display "und jetzt falsch")
+       [else                                                                                         ;starke Deklination
         (cond
-          [(eq? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "e")]
-          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "e")]
-          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "er")]
-          [(eq? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "neutral") (string-append (AdjectiveQuery adjective) "es")]
+          [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "e")]    ;Nomen im Plural
+          [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "e")]     ;Nomen ist weiblich
+          [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "er")]      ;Nomen ist männlich
+          [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "neutral") (string-append (AdjectiveQuery adjective) "es")]   ;Nomen ist neutral
+          )
+        ]
        )
      ]
-    )
+    [((string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "akkutsativ");Akkusativ
+      (cond
+        [(weakDeclination pos input)                                                                  ;schwache Deklination
+         (display "Akkusativ schwach")
+         (cond
+           [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]  ;Nomen im Plural
+           [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "en")]     ;Nomen ist männlich
+           [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "e")]    ;Nomen ist weiblich
+           [else (string-append (AdjectiveQuery adjective) "e")]                                                                                                                                               ;Nomen ist neutral
+           )
+         ]
+        [else                                                                                         ;starke Deklination
+         (cond
+           [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "e")]   ;Nomen im Plural
+           [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "female") (string-append (AdjectiveQuery adjective) "e")]    ;Nomen ist weiblich
+           [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "en")]     ;Nomen ist männlich
+           [else (string-append (AdjectiveQuery adjective) "es")]                                                                                                                                              ;Nomen ist neutral
+           )
+         ]
+        )
+      )
      ]
     )
   )
+;die Funktion passt die Endung der Adjektive je nach Kasus, Numerus und Genus an
+
         
 (define (weakDeclination pos input)
-  (not
-   (eq?
-    (or
-     (member (list-ref input (- pos 1)) '("der" "die" "das"))
-     (isPronoun (list-ref input (- pos 1)))
-     )
-    #f
+  (cond
+    [(> pos 0)
+     (not
+      (eq?
+       (or
+        (member (list-ref input (- pos 1)) '("der" "die" "das" "the"))
+        (isPronoun (list-ref input (- pos 1)))
+        )
+       #f
+       )
+      )
+     ]
+    [else #f]
     )
-   )
-  #t
   )
 
-;schaut, ob schwach dekliniert werden muss    
+;checkt, ob vor dem Adjektiv ein bestimmter Artikel oder ein Pronomen steht, wenn ja wird #t zurückgegeben  
     
 
 (define (isAdjective ele)
@@ -84,4 +101,4 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_adj FROM adjectives WHERE eng_adj=" "'" ele "'LIMIT 1"))#t]
     [else #f]))
 
-;(define (getCase subj))
+;checkt, ob es sich bei dem Wort um ein Adjektiv handelt. Hierfür wird die Tabelle mit Adjektiven durchsucht

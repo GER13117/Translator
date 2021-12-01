@@ -4,11 +4,9 @@
 (require net/url)
 (require http/request)
 (display
- "Welcome to our Calculator
-By now it just features a few things.
-Things like adjectives aren't working by now. But feel free to contribute.
+ "Welcome to our english-to-german simple-present Translator!
 ______________________________________________________________________________ \n
-To start the calculator just type in the english sentence you want to translate. If you are lucky you might get a translation. Longer texts take a longer time to be translated, be patient! \n\n")
+To start the translator just type in the english sentence you want to translate and press enter. Longer texts take a longer time to be translated, be patient! \n\n")
 
 (define (httpPost str_input)
   (bytes->string/utf-8 (call/output-request
