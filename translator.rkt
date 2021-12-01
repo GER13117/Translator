@@ -109,7 +109,7 @@
     [(query-maybe-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" ele "'"))#t]
     [else #f]))
 
-(define (getPronoun pronoun)  ;does a basic wordtoword translation of a pronoun. This is totally sufficiant
+(define (getPronoun pronoun)  ;does a basic wordtoword translation of a pronoun. This is patially sufficiant (things like my can get false)
   (query-value mdbc (string-append "SELECT ger_pronoun FROM pronouns WHERE eng_pronoun=" "'" pronoun "'")))
 
 ;|------------------------------------------<|Verbs|>------------------------------------------------|
