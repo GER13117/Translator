@@ -15,7 +15,6 @@
 ;übersetzt das englische Wort nach Deutsch z.B. small ->klein
 
 (define (getAdjective adjective pos wordTypeList input)
-  (displayln "getAdjective getriggert")
   (cond
     [(member "of" (take input pos)) (string-append (AdjectiveQuery adjective) "en")]                ;"of" vor dem Adjektiv als Auslöser für Genitiv
     [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "dativ")    ;Dativ
@@ -33,7 +32,6 @@
     [(string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "nominativ") ;Nominativ
      (cond
        [(weakDeclination pos input)                                                                  ;schwache Deklination
-        (display "bistNominativ")
         (cond
           [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "singular") (string-append (AdjectiveQuery adjective) "e")] ;Nomen im Singular
           [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]  ;Nomen im Plural
@@ -52,7 +50,6 @@
     [((string=? (getCase (getNext "noun" pos wordTypeList input) pos wordTypeList input) "akkutsativ");Akkusativ
       (cond
         [(weakDeclination pos input)                                                                  ;schwache Deklination
-         (display "Akkusativ schwach")
          (cond
            [(string=? (query-value mdbc (string-append "SELECT numerus FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "plural") (string-append (AdjectiveQuery adjective) "en")]  ;Nomen im Plural
            [(string=? (query-value mdbc (string-append "SELECT gender FROM nouns WHERE eng_noun=" "'"(getNext "noun" pos wordTypeList input)"'")) "male") (string-append (AdjectiveQuery adjective) "en")]     ;Nomen ist männlich
