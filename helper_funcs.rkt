@@ -7,8 +7,8 @@
   (let loop ((lst lst)
              (idx 0))
     (cond ((empty? lst) #f)
-         ((equal? (first lst) ele) idx)
-         (else (loop (rest lst) (add1 idx))))))
+          ((equal? (first lst) ele) idx)
+          (else (loop (rest lst) (add1 idx))))))
 
 (define (getNext wordType startPos wordTypeList input) ;returns the next word of a specific type. If there is no such word it returns false
   (cond
@@ -25,17 +25,18 @@
 
 
 (define (getCase noun pos wordTypeList input) ;gets the case of a noun by checking multiple things. e.g. 's or the normal case of a preposition (to => Dativ)
-  (cond
-    [(or (regexp-match? #rx"(°s)|(s°)$" noun)(list? (member  "of" (take input pos)))) "genitiv"]
-    [(string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"dativ"]
-    [(member "verb" (take wordTypeList pos))
-     (cond
-       [(member "preposition" (take wordTypeList pos))
-        (cond
-          [(or (regexp-match? #rx"(°s)|(s°)$" noun)(string? (member  "of" (take input pos)))) "genitiv"]
-          [(string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"dativ"]
-          [(string-ci=? "akkusativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" (getPrevious "preposition" pos wordTypeList input) "' LIMIT 1")))"akkusativ"]
-          [else "genitiv"]
-          )]
-       [else "genitiv"])]
-    [else "nominativ"]))
+  (let ([testen (getPrevious "preposition" pos wordTypeList input)])
+    (cond
+      [(or (regexp-match? #rx"(°s)|(s°)$" noun)(list? (member  "of" (take input pos)))) "genitiv"]
+      [(and testen (string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" testen "' LIMIT 1")))) "dativ"]
+      [(member "verb" (take wordTypeList pos))
+       (cond
+         [(member "preposition" (take wordTypeList pos))
+          (cond
+            [(or (regexp-match? #rx"(°s)|(s°)$" noun)(string? (member  "of" (take input pos)))) "genitiv"]
+            [(string-ci=? "dativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" testen "' LIMIT 1")))"dativ"]
+            [(string-ci=? "akkusativ" (query-value mdbc (string-append "SELECT gram_case FROM prepositions WHERE eng_prep='" testen "' LIMIT 1")))"akkusativ"]
+            [else "genitiv"]
+            )]
+         [else "genitiv"])]
+      [else "nominativ"])))
